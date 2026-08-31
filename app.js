@@ -447,7 +447,7 @@ function renderTodayAgenda() {
     const end = start + Number(a.duration || 0);
     const isPast = isToday && end <= nowMinutes;
     const isNext = nextToday && nextToday.id === a.id;
-    return `<li class="agenda-row ${isPast ? "past" : ""} ${isNext ? "next" : ""}"><div class="agenda-time"><strong>${a.time}</strong><span>${minutesToTime(end)}</span></div><div class="agenda-timeline"><span class="tl-dot"></span></div><div class="agenda-appointment"><button class="agenda-appointment-main" type="button" data-agenda-edit="${a.id}"><span class="agenda-client-line"><strong>${escapeHtml(a.client)}</strong><span class="agenda-cost">${Number(a.cost).toFixed(0)} lei</span></span><span class="agenda-service">${escapeHtml(a.service || "Serviciu personalizat")} · ${durationLabel(a.duration)}</span>${a.notes ? `<span class="agenda-notes">${escapeHtml(a.notes)}</span>` : ""}${firstVisitIds.has(a.id) ? `<span class="agenda-new-client">Clientă nouă</span>` : ""}</button><div class="swipe-actions agenda-actions"><button class="icon-btn" type="button" data-agenda-edit="${a.id}" aria-label="Editează programarea"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" type="button" data-agenda-delete="${a.id}" aria-label="Șterge programarea"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></div></li>`;
+    return `<li class="agenda-row swipe-item ${isPast ? "past" : ""} ${isNext ? "next" : ""}"><div class="swipe-content agenda-swipe-content"><div class="agenda-time"><strong>${a.time}</strong><span>${minutesToTime(end)}</span></div><div class="agenda-timeline"><span class="tl-dot"></span></div><div class="agenda-appointment"><button class="agenda-appointment-main" type="button" data-agenda-edit="${a.id}"><span class="agenda-client-line"><strong>${escapeHtml(a.client)}</strong><span class="agenda-cost">${Number(a.cost).toFixed(0)} lei</span></span><span class="agenda-service">${escapeHtml(a.service || "Serviciu personalizat")} · ${durationLabel(a.duration)}</span>${a.notes ? `<span class="agenda-notes">${escapeHtml(a.notes)}</span>` : ""}${firstVisitIds.has(a.id) ? `<span class="agenda-new-client">Clientă nouă</span>` : ""}</button></div></div><div class="swipe-actions"><button class="icon-btn" type="button" data-agenda-edit="${a.id}" aria-label="Editează programarea"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" type="button" data-agenda-delete="${a.id}" aria-label="Șterge programarea"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`;
   }).join("")}</ol>`;
 
   let emptyHtml = "";
@@ -523,7 +523,7 @@ function renderDayCard() {
     bodyHtml = `<p class="no-appts">Nicio programare în această zi.</p>`;
   } else {
     const firstVisitIds = firstVisitIdsSet();
-    bodyHtml = `<ul class="appt-list">${list.map(a => `<li class="appt-item swipe-row"><div class="appt-content"><div class="appt-time">${a.time}–${minutesToTime(timeToMinutes(a.time) + Number(a.duration))}</div><div><div class="appt-client">${escapeHtml(a.client)}${firstVisitIds.has(a.id) ? ` <span class="new-badge">✨ Nouă</span>` : ""}</div>${a.service ? `<div class="appt-service">${escapeHtml(a.service)}</div>` : ""}${a.notes ? `<div class="appt-notes">${escapeHtml(a.notes)}</div>` : ""}</div><div class="appt-cost">${Number(a.cost).toFixed(0)} lei</div></div><div class="swipe-actions appt-actions"><button class="icon-btn" data-edit="${a.id}" aria-label="Editează"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" data-del="${a.id}" aria-label="Șterge"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`).join("")}</ul>`;
+    bodyHtml = `<ul class="appt-list">${list.map(a => `<li class="appt-item swipe-item"><div class="swipe-content appt-swipe-content"><div class="appt-time">${a.time}–${minutesToTime(timeToMinutes(a.time) + Number(a.duration))}</div><div><div class="appt-client">${escapeHtml(a.client)}${firstVisitIds.has(a.id) ? ` <span class="new-badge">✨ Nouă</span>` : ""}</div>${a.service ? `<div class="appt-service">${escapeHtml(a.service)}</div>` : ""}${a.notes ? `<div class="appt-notes">${escapeHtml(a.notes)}</div>` : ""}</div><div class="appt-cost">${Number(a.cost).toFixed(0)} lei</div></div><div class="swipe-actions"><button class="icon-btn" data-edit="${a.id}" aria-label="Editează"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" data-del="${a.id}" aria-label="Șterge"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`).join("")}</ul>`;
   }
   els.dayCard.innerHTML = `<div class="day-card-header"><h2 class="day-card-title">${label}</h2></div>${bodyHtml}`;
   if (!isEditingHere) {
@@ -782,25 +782,37 @@ function showToast(msg) {
 }
 
 function setupSwipeActions(root = document) {
-  root.querySelectorAll(".swipe-row, .agenda-row").forEach(row => {
+  const rows = root.querySelectorAll(".swipe-item");
+
+  rows.forEach(row => {
+    if (row.dataset.swipeReady === "1") return;
+    row.dataset.swipeReady = "1";
+
     let startX = 0;
     let startY = 0;
+
     row.addEventListener("touchstart", (e) => {
-      const t = e.touches[0];
-      startX = t.clientX;
-      startY = t.clientY;
+      const touch = e.touches[0];
+      startX = touch.clientX;
+      startY = touch.clientY;
     }, { passive: true });
+
     row.addEventListener("touchend", (e) => {
-      const t = e.changedTouches[0];
-      const dx = t.clientX - startX;
-      const dy = t.clientY - startY;
-      if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) {
-        document.querySelectorAll(".swipe-open").forEach(el => { if (el !== row) el.classList.remove("swipe-open"); });
-        if (dx < 0) row.classList.add("swipe-open");
-        else row.classList.remove("swipe-open");
-      }
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - startX;
+      const dy = touch.clientY - startY;
+
+      if (Math.abs(dx) < 40 || Math.abs(dx) < Math.abs(dy)) return;
+
+      document.querySelectorAll(".swipe-item.open").forEach(item => {
+        if (item !== row) item.classList.remove("open");
+      });
+
+      if (dx < 0) row.classList.add("open");
+      else row.classList.remove("open");
     }, { passive: true });
   });
 }
+
 
 renderAll();

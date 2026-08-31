@@ -408,3 +408,71 @@
   .profit-negative { color: #F1616B; }
   #view-expenses { display: none; }
   #view-expenses.active { display: block; animation: viewFadeIn 0.22s ease; }
+
+
+/* Swipe pentru acțiuni programări */
+.swipe-item {
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+
+.swipe-content {
+  position: relative;
+  z-index: 2;
+  transition: transform 0.22s ease;
+}
+
+.swipe-actions {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease;
+}
+
+.swipe-item.open .swipe-content {
+  transform: translateX(-104px);
+}
+
+.swipe-item.open .swipe-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.agenda-swipe-content {
+  display: grid;
+  grid-template-columns: 58px 18px 1fr;
+  gap: 8px;
+  align-items: stretch;
+  width: 100%;
+}
+
+.appt-swipe-content {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  background: inherit;
+}
+
+.new-clients-chart .chart-bar {
+  background: linear-gradient(180deg, #8B7CF6, #34D399);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .swipe-item:hover .swipe-content {
+    transform: translateX(-104px);
+  }
+
+  .swipe-item:hover .swipe-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
