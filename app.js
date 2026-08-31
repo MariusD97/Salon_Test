@@ -447,7 +447,7 @@ function renderTodayAgenda() {
     const end = start + Number(a.duration || 0);
     const isPast = isToday && end <= nowMinutes;
     const isNext = nextToday && nextToday.id === a.id;
-    return `<li class="agenda-row swipe-item ${isPast ? "past" : ""} ${isNext ? "next" : ""}"><div class="swipe-content agenda-swipe-content"><div class="agenda-time"><strong>${a.time}</strong><span>${minutesToTime(end)}</span></div><div class="agenda-timeline"><span class="tl-dot"></span></div><div class="agenda-appointment"><button class="agenda-appointment-main" type="button" data-agenda-edit="${a.id}"><span class="agenda-client-line"><strong>${escapeHtml(a.client)}</strong><span class="agenda-cost">${Number(a.cost).toFixed(0)} lei</span></span><span class="agenda-service">${escapeHtml(a.service || "Serviciu personalizat")} · ${durationLabel(a.duration)}</span>${a.notes ? `<span class="agenda-notes">${escapeHtml(a.notes)}</span>` : ""}${firstVisitIds.has(a.id) ? `<span class="agenda-new-client">Clientă nouă</span>` : ""}</button></div></div><div class="swipe-actions"><button class="icon-btn" type="button" data-agenda-edit="${a.id}" aria-label="Editează programarea"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" type="button" data-agenda-delete="${a.id}" aria-label="Șterge programarea"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`;
+    return `<li class="agenda-row swipe-item ${isPast ? "past" : ""} ${isNext ? "next" : ""}"><div class="agenda-time"><strong>${a.time}</strong><span>${minutesToTime(end)}</span></div><div class="agenda-timeline"><span class="tl-dot"></span></div><div class="agenda-appointment"><button class="agenda-appointment-main" type="button" data-agenda-edit="${a.id}"><span class="agenda-client-line"><strong>${escapeHtml(a.client)}</strong><span class="agenda-cost">${Number(a.cost).toFixed(0)} lei</span></span><span class="agenda-service">${escapeHtml(a.service || "Serviciu personalizat")} · ${durationLabel(a.duration)}</span>${a.notes ? `<span class="agenda-notes">${escapeHtml(a.notes)}</span>` : ""}${firstVisitIds.has(a.id) ? `<span class="agenda-new-client">Clientă nouă</span>` : ""}</button></div><div class="swipe-actions"><button class="icon-btn" type="button" data-agenda-edit="${a.id}" aria-label="Editează programarea"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" type="button" data-agenda-delete="${a.id}" aria-label="Șterge programarea"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`;
   }).join("")}</ol>`;
 
   let emptyHtml = "";
@@ -676,9 +676,9 @@ function newClientsByMonth(monthsBack = 12) {
 }
 
 function renderNewClientsChart() {
-  const series = newClientsByMonth(12);
+  const series = newClientsByMonth(6);
   const maxVal = Math.max(1, ...series.map(s => s.count));
-  return `<div class="card"><div class="stats-card-title">Cliente noi — ultimele 12 luni</div><div class="chart-row new-clients-chart">${series.map(s => `<div class="chart-col"><div class="chart-value">${s.count > 0 ? s.count : ""}</div><div class="chart-bar-wrap"><div class="chart-bar ${s.isCurrent ? "current" : ""}" style="height: ${Math.max(4, (s.count / maxVal) * 100)}%"></div></div><div class="chart-count">${s.count}</div><div class="chart-label">${s.label}</div></div>`).join("")}</div></div>`;
+  return `<div class="card"><div class="stats-card-title">Cliente noi — ultimele 6 luni</div><div class="chart-row new-clients-chart">${series.map(s => `<div class="chart-col"><div class="chart-value">${s.count > 0 ? s.count : ""}</div><div class="chart-bar-wrap"><div class="chart-bar ${s.isCurrent ? "current" : ""}" style="height: ${Math.max(4, (s.count / maxVal) * 100)}%"></div></div><div class="chart-count">${s.count}</div><div class="chart-label">${s.label}</div></div>`).join("")}</div></div>`;
 }
 
 function renderClientsStatsSection() {

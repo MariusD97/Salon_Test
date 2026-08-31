@@ -476,3 +476,59 @@
     pointer-events: auto;
   }
 }
+
+
+/* V3 fix: agenda swipe layout + 6-month chart */
+.swipe-content {
+  transition: transform 0.22s ease !important;
+}
+.swipe-actions {
+  transition: opacity 0.18s ease !important;
+}
+.agenda-row.swipe-item {
+  display: grid;
+  grid-template-columns: 58px 18px 1fr;
+  gap: 8px;
+  align-items: stretch;
+  position: relative;
+  overflow: hidden;
+  touch-action: pan-y;
+}
+.agenda-row.swipe-item > .agenda-time,
+.agenda-row.swipe-item > .agenda-timeline,
+.agenda-row.swipe-item > .agenda-appointment {
+  position: relative;
+  z-index: 2;
+  transition: transform 0.22s ease;
+}
+.agenda-row.swipe-item.open > .agenda-time,
+.agenda-row.swipe-item.open > .agenda-timeline,
+.agenda-row.swipe-item.open > .agenda-appointment {
+  transform: translateX(-104px);
+}
+.agenda-row.swipe-item.open > .swipe-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+.agenda-row.swipe-item > .swipe-actions {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .agenda-row.swipe-item:hover > .agenda-time,
+  .agenda-row.swipe-item:hover > .agenda-timeline,
+  .agenda-row.swipe-item:hover > .agenda-appointment {
+    transform: translateX(-104px);
+  }
+  .agenda-row.swipe-item:hover > .swipe-actions {
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
