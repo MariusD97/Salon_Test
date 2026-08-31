@@ -532,3 +532,142 @@
     pointer-events: auto;
   }
 }
+
+
+/* V4 — iOS native feel: safe area, tap feedback, tab transitions, no accidental selection */
+:root {
+ --safe-top: env(safe-area-inset-top, 0px);
+ --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html {
+ min-height: 100%;
+ background: #0B0911;
+ -webkit-text-size-adjust: 100%;
+ overscroll-behavior-y: none;
+}
+
+body {
+ min-height: 100%;
+ padding-top: var(--safe-top);
+ padding-bottom: var(--safe-bottom);
+ -webkit-tap-highlight-color: transparent;
+}
+
+/* Extra breathing room for iPhone home indicator */
+.bottom-nav,
+.mobile-nav,
+.navbar,
+.bottom-tabs {
+ padding-bottom: calc(12px + var(--safe-bottom)) !important;
+}
+
+/* If the app uses a fixed bottom navigation, keep content above it */
+.app,
+.app-shell,
+main,
+.main,
+.content {
+ scroll-padding-bottom: calc(120px + var(--safe-bottom));
+}
+
+/* Prevent accidental text selection on interactive UI */
+button,
+.nav-item,
+.tab-btn,
+.subtab-btn,
+.day-cell,
+.client-row,
+.client-card,
+.appt-item,
+.agenda-row,
+.card,
+.icon-btn,
+.save-btn,
+.cancel-btn,
+.add-btn,
+.next-appointment,
+.today-return-btn,
+.nav-btn {
+ -webkit-user-select: none;
+ user-select: none;
+ -webkit-touch-callout: none;
+ -webkit-tap-highlight-color: transparent;
+}
+
+input,
+textarea,
+select {
+ -webkit-user-select: text;
+ user-select: text;
+ -webkit-touch-callout: default;
+ font-size: 16px;
+}
+
+/* Haptic-like visual feedback */
+button,
+.day-cell,
+.client-row,
+.appt-item,
+.agenda-row,
+.card,
+.next-appointment {
+ transition-property: transform, opacity, background-color, border-color, box-shadow;
+ transition-duration: 0.16s;
+ transition-timing-function: ease;
+}
+
+button:active,
+.day-cell:active,
+.client-row:active,
+.appt-item:active,
+.agenda-row:active,
+.next-appointment:active {
+ transform: scale(0.975);
+ opacity: 0.88;
+}
+
+.card:active {
+ transform: scale(0.992);
+}
+
+/* Keep central plus button feeling native without breaking its position */
+#navAddBtn:active,
+.nav-add-btn:active,
+.add-floating:active {
+ transform: translateY(-4px) scale(0.94) !important;
+ opacity: 0.92;
+}
+
+/* Smooth transitions between main tabs/views */
+.primary-view,
+.view,
+[data-view] {
+ transition: opacity 0.22s ease, transform 0.22s ease;
+}
+
+.primary-view:not(.active),
+.view:not(.active) {
+ opacity: 0;
+ transform: translateY(8px);
+ pointer-events: none;
+}
+
+.primary-view.active,
+.view.active {
+ opacity: 1;
+ transform: translateY(0);
+ pointer-events: auto;
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+ *,
+ *::before,
+ *::after {
+ animation-duration: 0.001ms !important;
+ animation-iteration-count: 1 !important;
+ scroll-behavior: auto !important;
+ transition-duration: 0.001ms !important;
+ }
+}
