@@ -546,3 +546,48 @@
   width: 100%;
   box-sizing: border-box;
 }
+
+
+/* Fix strict iOS pentru câmpul Data programării */
+#apptForm {
+ width:100%;
+ max-width:100%;
+ box-sizing: border-box;
+ overflow: hidden;
+}
+
+#apptForm .date-field-wrap {
+ width:100%;
+ max-width:100%;
+ box-sizing: border-box;
+ display:block;
+ overflow:hidden;
+}
+
+#apptForm .date-field-wrap .field {
+ width:100%;
+ max-width:100%;
+ box-sizing: border-box;
+ display:flex;
+ flex-direction: column;
+ overflow:hidden;
+}
+
+#apptForm .date-field-wrap input[type="date"] {
+ display:block;
+ width:100%;
+ max-width:100%;
+ min-width:0;
+ inline-size:100%;
+ max-inline-size:100%;
+ box-sizing: border-box;
+ -webkit-appearance: none;
+ appearance: none;
+}
+
+#apptForm input,
+#apptForm select,
+#apptForm textarea {
+ max-width:100%;
+ min-width:0;
+}
