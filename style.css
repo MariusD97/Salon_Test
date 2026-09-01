@@ -1572,7 +1572,7 @@ body.stats-view-open > .header { display: none; }
   background: #14131C;
 }
 .stats-sort-control button {
-  min-height: 34px;
+  min-height: 38px;
   padding: 6px 10px;
   border: 0;
   border-radius: 6px;
