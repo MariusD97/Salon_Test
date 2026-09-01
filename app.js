@@ -625,15 +625,6 @@ function clientInitials(name) {
   return name.trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0).toUpperCase()).join("") || "C";
 }
 
-function clientPreferredService(visits) {
-  const counts = {};
-  for (const visit of visits) {
-    const service = (visit.service && visit.service.trim()) || "Personalizat";
-    counts[service] = (counts[service] || 0) + 1;
-  }
-  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
-}
-
 function clientDateLabel(dateStr) {
   const label = new Intl.DateTimeFormat("ro-RO", { day: "numeric", month: "long", year: "numeric" }).format(dateFromKey(dateStr));
   return label.charAt(0).toUpperCase() + label.slice(1);
@@ -676,6 +667,71 @@ function openClientAppointment(appointmentId) {
   renderAll();
 }
 
+function closeClientProfile() {
+  expandedClient = null;
+  renderClients();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function enableClientProfileSwipe(profile) {
+  let startX = 0;
+  let startY = 0;
+  let deltaX = 0;
+  let gestureMode = null;
+  let gestureActive = false;
+
+  const resetPosition = () => {
+    profile.style.transition = "transform 0.18s ease, opacity 0.18s ease";
+    profile.style.transform = "";
+    profile.style.opacity = "";
+  };
+
+  profile.addEventListener("touchstart", event => {
+    if (event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    startX = touch.clientX;
+    startY = touch.clientY;
+    deltaX = 0;
+    gestureMode = null;
+    gestureActive = true;
+    profile.style.transition = "none";
+  }, { passive: true });
+
+  profile.addEventListener("touchmove", event => {
+    if (!gestureActive || event.touches.length !== 1) return;
+    const touch = event.touches[0];
+    const dx = touch.clientX - startX;
+    const dy = touch.clientY - startY;
+
+    if (gestureMode === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      gestureMode = dx > 0 && Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+    }
+    if (gestureMode !== "horizontal") return;
+
+    event.preventDefault();
+    deltaX = Math.max(0, dx);
+    profile.style.transform = `translateX(${Math.min(deltaX, 180)}px)`;
+    profile.style.opacity = String(1 - Math.min(deltaX / 520, 0.22));
+  }, { passive: false });
+
+  profile.addEventListener("touchend", () => {
+    gestureActive = false;
+    if (gestureMode === "horizontal" && deltaX >= 72) {
+      profile.style.transition = "transform 0.18s ease, opacity 0.18s ease";
+      profile.style.transform = "translateX(100vw)";
+      profile.style.opacity = "0";
+      setTimeout(closeClientProfile, 170);
+      return;
+    }
+    resetPosition();
+  }, { passive: true });
+
+  profile.addEventListener("touchcancel", () => {
+    gestureActive = false;
+    resetPosition();
+  }, { passive: true });
+}
+
 function renderClientProfile(client) {
   const search = document.getElementById("clientSearch");
   if (search) search.hidden = true;
@@ -686,7 +742,6 @@ function renderClientProfile(client) {
   const futureVisits = [...client.visits].filter(visit => `${visit.date} ${visit.time}` >= currentStamp).sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
   const nextVisit = futureVisits[0] || null;
   const historyVisits = client.visits;
-  const preferredService = clientPreferredService(client.visits);
   const money = new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 0 });
   const initials = clientInitials(client.name);
 
@@ -698,13 +753,11 @@ function renderClientProfile(client) {
     ? `<ol class="client-profile-history">${historyVisits.map(visit => `<li><button type="button" class="client-history-row" data-client-appointment="${visit.id}"><span class="client-history-line" aria-hidden="true"></span><span class="client-history-copy"><span class="client-history-date">${escapeHtml(clientDateLabel(visit.date))} · ${escapeHtml(visit.time)}</span><span class="client-history-service">${escapeHtml(visit.service || "Serviciu personalizat")}</span>${visit.notes ? `<span class="client-history-note">${escapeHtml(visit.notes)}</span>` : ""}</span><span class="client-history-price">${money.format(Number(visit.cost) || 0)} lei</span><span class="client-profile-chevron" aria-hidden="true">›</span></button></li>`).join("")}</ol>`
     : `<div class="client-profile-empty compact"><p>Nu există programări în istoric.</p></div>`;
 
-  els.clientListInner.innerHTML = `<article class="client-profile-page"><header class="client-profile-header"><button type="button" class="client-profile-back" data-client-back aria-label="Înapoi la lista de cliente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span>Profil clientă</span></header><section class="client-profile-hero"><div class="client-avatar" aria-hidden="true">${escapeHtml(initials)}</div><div class="client-profile-identity"><h2>${escapeHtml(client.name)}</h2><p>${client.visits.length} ${client.visits.length === 1 ? "vizită înregistrată" : "vizite înregistrate"}</p></div></section><button type="button" class="client-primary-action" data-profile-reschedule="${escapeHtml(client.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Programare nouă</span></button><section class="client-profile-stats" aria-label="Rezumat clientă"><div class="client-profile-stat"><span class="client-stat-icon purple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></span><strong>${client.visits.length}</strong><small>Programări</small></div><div class="client-profile-stat money"><span class="client-stat-icon green"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M8 15h.01"/></svg></span><strong>${money.format(client.total)} lei</strong><small>Total cheltuit</small></div><div class="client-profile-stat service"><span class="client-stat-icon lavender"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13 13 20a2 2 0 0 1-2.8 0L4 13.8V4h9.8L20 10.2a2 2 0 0 1 0 2.8Z"/><path d="M8.5 8.5h.01"/></svg></span><strong>${escapeHtml(preferredService)}</strong><small>Serviciu preferat</small></div></section><section class="client-profile-section"><div class="client-profile-section-head"><h3>Următoarea programare</h3>${nextVisit ? `<button type="button" data-client-appointment="${nextVisit.id}">Vezi detalii</button>` : ""}</div>${nextHtml}</section><section class="client-profile-section history-section"><div class="client-profile-section-head"><h3>Istoric programări</h3><span>${historyVisits.length}</span></div>${historyHtml}</section></article>`;
+  els.clientListInner.innerHTML = `<article class="client-profile-page"><header class="client-profile-header"><button type="button" class="client-profile-back" data-client-back aria-label="Înapoi la lista de cliente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span>Profil clientă</span></header><section class="client-profile-hero"><div class="client-avatar" aria-hidden="true">${escapeHtml(initials)}</div><div class="client-profile-identity"><h2>${escapeHtml(client.name)}</h2><p>${client.visits.length} ${client.visits.length === 1 ? "vizită înregistrată" : "vizite înregistrate"}</p></div></section><button type="button" class="client-primary-action" data-profile-reschedule="${escapeHtml(client.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Programare nouă</span></button><section class="client-profile-stats" aria-label="Rezumat clientă"><div class="client-profile-stat"><span class="client-stat-icon purple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></span><strong>${client.visits.length}</strong><small>Programări</small></div><div class="client-profile-stat money"><span class="client-stat-icon green"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M8 15h.01"/></svg></span><strong>${money.format(client.total)} lei</strong><small>Total cheltuit</small></div></section><section class="client-profile-section"><div class="client-profile-section-head"><h3>Următoarea programare</h3>${nextVisit ? `<button type="button" data-client-appointment="${nextVisit.id}">Vezi detalii</button>` : ""}</div>${nextHtml}</section><section class="client-profile-section history-section"><div class="client-profile-section-head"><h3>Istoric programări</h3><span>${historyVisits.length}</span></div>${historyHtml}</section></article>`;
 
-  els.clientListInner.querySelector("[data-client-back]")?.addEventListener("click", () => {
-    expandedClient = null;
-    renderClients();
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  });
+  const profile = els.clientListInner.querySelector(".client-profile-page");
+  if (profile) enableClientProfileSwipe(profile);
+  els.clientListInner.querySelector("[data-client-back]")?.addEventListener("click", closeClientProfile);
   els.clientListInner.querySelectorAll("[data-profile-reschedule]").forEach(button => {
     button.addEventListener("click", () => openClientRebooking(button.dataset.profileReschedule));
   });

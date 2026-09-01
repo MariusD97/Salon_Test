@@ -964,6 +964,8 @@ body.client-profile-open #clientSearch {
   width: min(100%, 620px);
   margin: 0 auto;
   padding-bottom: 22px;
+  touch-action: pan-y;
+  will-change: transform, opacity;
   animation: clientProfileIn 0.22s ease both;
 }
 
@@ -1054,7 +1056,7 @@ body.client-profile-open #clientSearch {
 
 .client-profile-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   margin-bottom: 22px;
   overflow: hidden;
   border: 1px solid #292635;
@@ -1084,7 +1086,6 @@ body.client-profile-open #clientSearch {
 }
 .client-stat-icon.purple { color: #8F7CFF; background: rgba(143, 124, 255, 0.1); }
 .client-stat-icon.green { color: #35D6A0; background: rgba(53, 214, 160, 0.1); }
-.client-stat-icon.lavender { color: #B7ABFF; background: rgba(183, 171, 255, 0.09); }
 .client-stat-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .client-profile-stat strong {
   min-width: 0;
@@ -1206,11 +1207,7 @@ body.client-profile-open #clientSearch {
 @keyframes clientProfileIn { from { opacity: 0; transform: translateX(10px); } to { opacity: 1; transform: translateX(0); } }
 
 @media (max-width: 389px) {
-  .client-profile-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .client-profile-stat:nth-child(3) { grid-column: 1 / -1; border-top: 1px solid #292635; border-left: 0; }
-  .client-profile-stat:nth-child(2) { border-left: 1px solid #292635; }
-  .client-profile-stat { min-height: 96px; }
-  .client-profile-stat.service { grid-template-columns: auto minmax(0, 1fr); }
+  .client-profile-stat { min-height: 96px; padding-left: 11px; padding-right: 11px; }
   .client-avatar { width: 68px; height: 68px; flex-basis: 68px; font-size: 22px; }
   .client-profile-identity h2 { font-size: 24px; }
 }
