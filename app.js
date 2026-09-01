@@ -126,6 +126,13 @@ function hideSplash() {
 setTimeout(hideSplash, 3000);
 
 function activateView(name) {
+  if (name !== "clients" && expandedClient !== null) {
+    expandedClient = null;
+    document.body.classList.remove("client-profile-open");
+    const search = document.getElementById("clientSearch");
+    if (search) search.hidden = false;
+    renderClients();
+  }
   Object.entries(primaryViews).forEach(([viewName, item]) => {
     const isActive = viewName === name;
     item.tab.classList.toggle("active", isActive);
@@ -614,8 +621,112 @@ function wireForm(onClose = renderDayCard) {
   });
 }
 
+function clientInitials(name) {
+  return name.trim().split(/\s+/).slice(0, 2).map(part => part.charAt(0).toUpperCase()).join("") || "C";
+}
+
+function clientPreferredService(visits) {
+  const counts = {};
+  for (const visit of visits) {
+    const service = (visit.service && visit.service.trim()) || "Personalizat";
+    counts[service] = (counts[service] || 0) + 1;
+  }
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
+}
+
+function clientDateLabel(dateStr) {
+  const label = new Intl.DateTimeFormat("ro-RO", { day: "numeric", month: "long", year: "numeric" }).format(dateFromKey(dateStr));
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+function openClientRebooking(clientName) {
+  prefillClient = clientName;
+  if (!selectedDate) {
+    const today = new Date();
+    selectedDate = dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+    year = today.getFullYear();
+    month = today.getMonth();
+  }
+  editingId = "new";
+  editingSurface = "calendar";
+  formDate = selectedDate;
+  calendarMode = "calendar";
+  localStorage.setItem("calendarViewMode", calendarMode);
+  const selected = dateFromKey(selectedDate);
+  year = selected.getFullYear();
+  month = selected.getMonth();
+  activateView("calendar");
+  renderAll();
+}
+
+function openClientAppointment(appointmentId) {
+  const appointment = appointments.find(item => item.id === appointmentId);
+  if (!appointment) return;
+  selectedDate = appointment.date;
+  agendaDate = appointment.date;
+  formDate = appointment.date;
+  editingId = appointment.id;
+  editingSurface = "calendar";
+  calendarMode = "calendar";
+  localStorage.setItem("calendarViewMode", calendarMode);
+  const selected = dateFromKey(appointment.date);
+  year = selected.getFullYear();
+  month = selected.getMonth();
+  activateView("calendar");
+  renderAll();
+}
+
+function renderClientProfile(client) {
+  const search = document.getElementById("clientSearch");
+  if (search) search.hidden = true;
+  document.body.classList.add("client-profile-open");
+
+  const now = new Date();
+  const currentStamp = `${todayDateKey()} ${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  const futureVisits = [...client.visits].filter(visit => `${visit.date} ${visit.time}` >= currentStamp).sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`));
+  const nextVisit = futureVisits[0] || null;
+  const historyVisits = client.visits;
+  const preferredService = clientPreferredService(client.visits);
+  const money = new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 0 });
+  const initials = clientInitials(client.name);
+
+  const nextHtml = nextVisit
+    ? `<button type="button" class="client-next-card" data-client-appointment="${nextVisit.id}"><span class="client-next-date">${escapeHtml(clientDateLabel(nextVisit.date))}</span><span class="client-next-time">${escapeHtml(nextVisit.time)}</span><span class="client-next-service">${escapeHtml(nextVisit.service || "Serviciu personalizat")} · ${escapeHtml(durationLabel(nextVisit.duration))}</span>${nextVisit.notes ? `<span class="client-next-note">${escapeHtml(nextVisit.notes)}</span>` : ""}<span class="client-next-price">${money.format(Number(nextVisit.cost) || 0)} lei</span><span class="client-profile-chevron" aria-hidden="true">›</span></button>`
+    : `<div class="client-profile-empty"><p>Nu există programări viitoare.</p><button type="button" data-profile-reschedule="${escapeHtml(client.name)}">Programează clienta</button></div>`;
+
+  const historyHtml = historyVisits.length
+    ? `<ol class="client-profile-history">${historyVisits.map(visit => `<li><button type="button" class="client-history-row" data-client-appointment="${visit.id}"><span class="client-history-line" aria-hidden="true"></span><span class="client-history-copy"><span class="client-history-date">${escapeHtml(clientDateLabel(visit.date))} · ${escapeHtml(visit.time)}</span><span class="client-history-service">${escapeHtml(visit.service || "Serviciu personalizat")}</span>${visit.notes ? `<span class="client-history-note">${escapeHtml(visit.notes)}</span>` : ""}</span><span class="client-history-price">${money.format(Number(visit.cost) || 0)} lei</span><span class="client-profile-chevron" aria-hidden="true">›</span></button></li>`).join("")}</ol>`
+    : `<div class="client-profile-empty compact"><p>Nu există programări în istoric.</p></div>`;
+
+  els.clientListInner.innerHTML = `<article class="client-profile-page"><header class="client-profile-header"><button type="button" class="client-profile-back" data-client-back aria-label="Înapoi la lista de cliente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span>Profil clientă</span></header><section class="client-profile-hero"><div class="client-avatar" aria-hidden="true">${escapeHtml(initials)}</div><div class="client-profile-identity"><h2>${escapeHtml(client.name)}</h2><p>${client.visits.length} ${client.visits.length === 1 ? "vizită înregistrată" : "vizite înregistrate"}</p></div></section><button type="button" class="client-primary-action" data-profile-reschedule="${escapeHtml(client.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Programare nouă</span></button><section class="client-profile-stats" aria-label="Rezumat clientă"><div class="client-profile-stat"><span class="client-stat-icon purple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></span><strong>${client.visits.length}</strong><small>Programări</small></div><div class="client-profile-stat money"><span class="client-stat-icon green"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M8 15h.01"/></svg></span><strong>${money.format(client.total)} lei</strong><small>Total cheltuit</small></div><div class="client-profile-stat service"><span class="client-stat-icon lavender"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13 13 20a2 2 0 0 1-2.8 0L4 13.8V4h9.8L20 10.2a2 2 0 0 1 0 2.8Z"/><path d="M8.5 8.5h.01"/></svg></span><strong>${escapeHtml(preferredService)}</strong><small>Serviciu preferat</small></div></section><section class="client-profile-section"><div class="client-profile-section-head"><h3>Următoarea programare</h3>${nextVisit ? `<button type="button" data-client-appointment="${nextVisit.id}">Vezi detalii</button>` : ""}</div>${nextHtml}</section><section class="client-profile-section history-section"><div class="client-profile-section-head"><h3>Istoric programări</h3><span>${historyVisits.length}</span></div>${historyHtml}</section></article>`;
+
+  els.clientListInner.querySelector("[data-client-back]")?.addEventListener("click", () => {
+    expandedClient = null;
+    renderClients();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+  els.clientListInner.querySelectorAll("[data-profile-reschedule]").forEach(button => {
+    button.addEventListener("click", () => openClientRebooking(button.dataset.profileReschedule));
+  });
+  els.clientListInner.querySelectorAll("[data-client-appointment]").forEach(button => {
+    button.addEventListener("click", () => openClientAppointment(button.dataset.clientAppointment));
+  });
+}
+
 function renderClients() {
   const allClients = clientsList();
+  const search = document.getElementById("clientSearch");
+  if (expandedClient !== null) {
+    const client = allClients.find(item => item.name === expandedClient);
+    if (client) {
+      renderClientProfile(client);
+      return;
+    }
+    expandedClient = null;
+  }
+
+  document.body.classList.remove("client-profile-open");
+  if (search) search.hidden = false;
   const q = clientSearchQuery.trim().toLowerCase();
   const clients = q ? allClients.filter(c => c.name.toLowerCase().includes(q)) : allClients;
   if (allClients.length === 0) {
@@ -626,21 +737,12 @@ function renderClients() {
     els.clientListInner.innerHTML = `<p class="no-appts">Nicio clientă găsită pentru „${escapeHtml(clientSearchQuery)}".</p>`;
     return;
   }
-  els.clientListInner.innerHTML = `<ul class="client-list">${clients.map(c => {
-    const isOpen = expandedClient === c.name;
-    return `<li class="client-card"><button class="client-row" data-client="${escapeHtml(c.name)}"><div><div class="appt-client">${escapeHtml(c.name)}</div><div class="client-meta">${c.visits.length} ${c.visits.length === 1 ? "vizită" : "vizite"}</div></div><div class="client-total">${c.total.toFixed(0)} lei</div><div class="client-chevron">${isOpen ? "▴" : "▾"}</div></button><ul class="client-history ${isOpen ? "open" : ""}"><li style="padding-bottom: 4px;"><button class="add-btn" style="width:100%; font-size:13px;" data-reschedule="${escapeHtml(c.name)}">+ Programează din nou</button></li>${c.visits.map(v => { const [y, m, d] = v.date.split("-").map(Number); return `<li class="history-item"><div class="history-date">${d} ${MONTHS_RO[m - 1].slice(0, 3)} ${y}</div><div class="history-service">${escapeHtml(v.service || "—")}</div><div class="history-cost">${Number(v.cost).toFixed(0)} lei</div></li>`; }).join("")}</ul></li>`;
-  }).join("")}</ul>`;
-  els.clientListInner.querySelectorAll("[data-client]").forEach(btn => {
-    btn.addEventListener("click", () => { const name = btn.dataset.client; expandedClient = expandedClient === name ? null : name; renderClients(); });
-  });
-  els.clientListInner.querySelectorAll("[data-reschedule]").forEach(btn => {
-    btn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      prefillClient = btn.dataset.reschedule;
-      if (!selectedDate) { const today = new Date(); selectedDate = dateKey(today.getFullYear(), today.getMonth(), today.getDate()); year = today.getFullYear(); month = today.getMonth(); }
-      editingId = "new"; editingSurface = "calendar"; formDate = selectedDate; calendarMode = "calendar"; localStorage.setItem("calendarViewMode", calendarMode);
-      const selected = dateFromKey(selectedDate); year = selected.getFullYear(); month = selected.getMonth();
-      activateView("calendar"); renderAll();
+  els.clientListInner.innerHTML = `<ul class="client-list">${clients.map(c => `<li class="client-card"><button class="client-row" data-client="${escapeHtml(c.name)}"><div><div class="appt-client">${escapeHtml(c.name)}</div><div class="client-meta">${c.visits.length} ${c.visits.length === 1 ? "vizită" : "vizite"}</div></div><div class="client-total">${c.total.toFixed(0)} lei</div><div class="client-chevron">›</div></button></li>`).join("")}</ul>`;
+  els.clientListInner.querySelectorAll("[data-client]").forEach(button => {
+    button.addEventListener("click", () => {
+      expandedClient = button.dataset.client;
+      renderClients();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     });
   });
 }
