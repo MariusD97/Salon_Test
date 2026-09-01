@@ -133,6 +133,7 @@ function activateView(name) {
     if (search) search.hidden = false;
     renderClients();
   }
+  document.body.classList.toggle("stats-view-open", name === "stats");
   Object.entries(primaryViews).forEach(([viewName, item]) => {
     const isActive = viewName === name;
     item.tab.classList.toggle("active", isActive);
@@ -801,30 +802,108 @@ function renderClients() {
 }
 
 let statsSubTab = "revenue";
+let servicesSortMode = "popularity";
+
+function formatStatsMoney(value) {
+  return `${new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 0 }).format(Number(value) || 0)} lei`;
+}
+
+function retentionByMonth(monthsBack = 6) {
+  const allClients = clientsList();
+  const now = new Date();
+  const series = [];
+  for (let i = monthsBack - 1; i >= 0; i--) {
+    const current = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const previous = new Date(current.getFullYear(), current.getMonth() - 1, 1);
+    const currentPrefix = `${current.getFullYear()}-${pad(current.getMonth() + 1)}`;
+    const previousPrefix = `${previous.getFullYear()}-${pad(previous.getMonth() + 1)}`;
+    const previousClients = allClients.filter(client => client.visits.some(visit => visit.date.startsWith(previousPrefix)));
+    const retained = previousClients.filter(client => client.visits.some(visit => visit.date.startsWith(currentPrefix)));
+    series.push({
+      label: MONTHS_RO[current.getMonth()].slice(0, 3),
+      value: previousClients.length ? Math.round((retained.length / previousClients.length) * 100) : null,
+      isCurrent: i === 0
+    });
+  }
+  return series;
+}
+
+function allServicesStats() {
+  const map = {};
+  for (const appointment of appointments) {
+    const name = (appointment.service && appointment.service.trim()) || "Personalizat";
+    (map[name] ||= { name, count: 0, total: 0 });
+    map[name].count += 1;
+    map[name].total += Number(appointment.cost) || 0;
+  }
+  return Object.values(map);
+}
+
+function statsBarChart(items, options = {}) {
+  const maxValue = Math.max(1, ...items.map(item => Number(item.value) || 0));
+  const valueFormatter = options.money ? formatStatsMoney : value => String(Number(value) || 0);
+  return `<div class="stats-bar-chart ${options.compact ? "compact" : ""}" role="img" aria-label="${escapeHtml(options.ariaLabel || "Grafic cu bare")}">${items.map(item => {
+    const value = Number(item.value) || 0;
+    const height = value > 0 ? Math.max(5, (value / maxValue) * 100) : 2;
+    return `<div class="stats-bar-item ${item.isCurrent ? "current" : ""}"><div class="stats-bar-area"><span class="stats-bar-tooltip">${escapeHtml(valueFormatter(value))}</span><span class="stats-bar" style="height:${height}%"></span></div>${item.meta !== undefined ? `<span class="stats-bar-meta">${escapeHtml(String(item.meta))}</span>` : ""}<span class="stats-bar-label">${escapeHtml(item.label)}</span></div>`;
+  }).join("")}</div>`;
+}
+
+function retentionLineChart(series) {
+  const values = series.map(item => item.value).filter(value => value !== null);
+  if (values.length === 0) return `<div class="stats-chart-empty">Nu există suficiente date pentru evoluția retenției.</div>`;
+  const maxScale = Math.max(10, Math.ceil(Math.max(...values) / 10) * 10);
+  const points = series.map((item, index) => ({
+    ...item,
+    x: series.length === 1 ? 150 : 24 + (index * 252 / (series.length - 1)),
+    y: item.value === null ? null : 88 - ((item.value / maxScale) * 64)
+  }));
+  let path = "";
+  let drawing = false;
+  for (const point of points) {
+    if (point.y === null) { drawing = false; continue; }
+    path += `${drawing ? " L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
+    drawing = true;
+  }
+  return `<div class="stats-line-chart"><svg viewBox="0 0 300 118" role="img" aria-label="Evoluția retenției în ultimele 6 luni"><line x1="24" y1="24" x2="276" y2="24"/><line x1="24" y1="56" x2="276" y2="56"/><line x1="24" y1="88" x2="276" y2="88"/><text x="2" y="27">${maxScale}%</text><text x="7" y="59">${Math.round(maxScale / 2)}%</text><text x="12" y="91">0%</text><path class="stats-line-path" d="${path}"/>${points.map(point => `${point.y === null ? "" : `<circle class="${point.isCurrent ? "current" : ""}" cx="${point.x}" cy="${point.y}" r="${point.isCurrent ? 4 : 3}"><title>${escapeHtml(point.label)}: ${point.value}%</title></circle>`}<text class="stats-line-label" x="${point.x}" y="110" text-anchor="middle">${escapeHtml(point.label)}</text>`).join("")}</svg></div>`;
+}
 
 function renderStats() {
-  const subTabsHtml = `<div class="stats-subtabs"><button class="subtab-btn ${statsSubTab === "revenue" ? "active" : ""}" data-substat="revenue">Încasări</button><button class="subtab-btn ${statsSubTab === "clients" ? "active" : ""}" data-substat="clients">Cliente</button><button class="subtab-btn ${statsSubTab === "services" ? "active" : ""}" data-substat="services">Servicii</button></div>`;
+  const subTabsHtml = `<div class="stats-subtabs" role="tablist" aria-label="Categorii statistici"><button class="subtab-btn ${statsSubTab === "revenue" ? "active" : ""}" type="button" role="tab" aria-selected="${statsSubTab === "revenue"}" data-substat="revenue">Încasări</button><button class="subtab-btn ${statsSubTab === "clients" ? "active" : ""}" type="button" role="tab" aria-selected="${statsSubTab === "clients"}" data-substat="clients">Cliente</button><button class="subtab-btn ${statsSubTab === "services" ? "active" : ""}" type="button" role="tab" aria-selected="${statsSubTab === "services"}" data-substat="services">Servicii</button></div>`;
   let content = "";
   if (statsSubTab === "revenue") content = renderRevenueSection();
   else if (statsSubTab === "clients") content = renderClientsStatsSection();
   else content = renderServicesStatsSection();
-  els.statsWrap.innerHTML = subTabsHtml + content;
-  els.statsWrap.querySelectorAll("[data-substat]").forEach(btn => { btn.addEventListener("click", () => { statsSubTab = btn.dataset.substat; renderStats(); }); });
+  els.statsWrap.innerHTML = `<div class="stats-page-header"><div><span>Analiză salon</span><h2>Statistici</h2></div><div class="stats-page-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></div></div>${subTabsHtml}<div class="stats-page-content">${content}</div>`;
+  els.statsWrap.querySelectorAll("[data-substat]").forEach(button => {
+    button.addEventListener("click", () => { statsSubTab = button.dataset.substat; renderStats(); });
+  });
+  els.statsWrap.querySelectorAll("[data-service-sort]").forEach(button => {
+    button.addEventListener("click", () => { servicesSortMode = button.dataset.serviceSort; renderStats(); });
+  });
   const scrollEl = document.getElementById("weekChartScroll");
   if (scrollEl) scrollEl.scrollLeft = scrollEl.scrollWidth;
 }
 
 function renderRevenueSection() {
+  const now = new Date();
   const series = revenueByMonth(6);
-  const maxVal = Math.max(1, ...series.map(s => s.total));
-  const chartHtml = `<div class="card"><div class="stats-card-title">Încasări — ultimele 6 luni</div><div class="chart-row">${series.map(s => `<div class="chart-col"><div class="chart-value">${s.total > 0 ? s.total.toFixed(0) : ""}</div><div class="chart-bar-wrap"><div class="chart-bar ${s.isCurrent ? "current" : ""}" style="height: ${maxVal > 0 ? Math.max(4, (s.total / maxVal) * 100) : 4}%"></div></div><div class="chart-count">${s.appointmentCount}</div><div class="chart-label">${s.label}</div></div>`).join("")}</div></div>`;
+  const current = series[series.length - 1] || { total: 0 };
+  const previous = series[series.length - 2] || { total: 0 };
+  const change = previous.total > 0 ? Math.round(((current.total - previous.total) / previous.total) * 100) : null;
+  const changeClass = change !== null && change < 0 ? "negative" : "positive";
+  const currentYear = now.getFullYear();
+  const yearlyMonths = Array.from({ length: 12 }, (_, index) => {
+    const prefix = `${currentYear}-${pad(index + 1)}`;
+    return { name: MONTHS_RO[index], total: appointments.filter(item => item.date.startsWith(prefix)).reduce((sum, item) => sum + (Number(item.cost) || 0), 0) };
+  });
+  const yearTotal = yearlyMonths.reduce((sum, item) => sum + item.total, 0);
+  const monthlyAverage = yearTotal / Math.max(1, now.getMonth() + 1);
+  const bestMonth = [...yearlyMonths].sort((a, b) => b.total - a.total)[0];
+  const recentRows = [...series].reverse();
   const weekSeries = revenueByWeek();
-  const weekMax = Math.max(1, ...weekSeries.map(s => s.total));
-  const weekChartHtml = weekSeries.length === 0 ? '' : `<div class="card"><div class="stats-card-title">Încăsări — pe săptămâni</div><div class="week-chart-scroll" id="weekChartScroll"><div class="week-chart-inner">${weekSeries.map(s => `<div class="chart-col"><div class="chart-value">${s.total > 0 ? s.total.toFixed(0) : ""}</div><div class="chart-bar-wrap"><div class="chart-bar ${s.isCurrent ? "current" : ""}" style="height: ${weekMax > 0 ? Math.max(4, (s.total / weekMax) * 100) : 4}%"></div></div><div class="chart-count">${s.appointmentCount}</div><div class="chart-label">${s.label}</div></div>`).join("")}</div></div></div>`;
-  const totalClients = clientsList().length;
-  const totalAppts = appointments.length;
-  const summaryHtml = `<div class="card"><div class="stats-card-title">Rezumat general</div><div style="display:flex; gap:12px; margin-top:4px;"><div style="flex:1; text-align:center; background:#1C1A26; border-radius:12px; padding:16px 10px;"><div style="font-family:'Fraunces',serif; font-size:32px; font-weight:700; color:#8B7CF6; line-height:1;">${totalClients}</div><div style="font-size:12.5px; color:#A79FBD; margin-top:6px;">Cliente unice</div></div><div style="flex:1; text-align:center; background:#1C1A26; border-radius:12px; padding:16px 10px;"><div style="font-family:'Fraunces',serif; font-size:32px; font-weight:700; color:#34D399; line-height:1;">${totalAppts}</div><div style="font-size:12.5px; color:#A79FBD; margin-top:6px;">Programări totale</div></div></div></div>`;
-  return summaryHtml + chartHtml + weekChartHtml;
+
+  return `<section class="stats-metric-hero"><span class="stats-period-label">${MONTHS_RO[now.getMonth()]} ${currentYear}</span><strong class="stats-primary-money">${formatStatsMoney(current.total)}</strong><small class="stats-change ${changeClass}">${change === null ? "Comparația lunară nu este disponibilă" : `${change >= 0 ? "+" : ""}${change}% față de luna trecută`}</small></section><section class="stats-panel stats-main-chart"><div class="stats-section-heading"><h3>Încasări lunare</h3><span>Ultimele 6 luni</span></div>${statsBarChart(series.map(item => ({ label: item.label, value: item.total, meta: item.appointmentCount, isCurrent: item.isCurrent })), { money: true, ariaLabel: "Încasări în ultimele 6 luni" })}</section><section class="stats-summary-strip"><div><small>Total în ${currentYear}</small><strong class="money">${formatStatsMoney(yearTotal)}</strong></div><div><small>Media lunară</small><strong>${formatStatsMoney(monthlyAverage)}</strong></div><div><small>Cea mai bună lună</small><strong class="accent">${bestMonth && bestMonth.total > 0 ? escapeHtml(bestMonth.name) : "—"}</strong></div></section><section class="stats-panel"><div class="stats-section-heading"><h3>Încasări recente</h3><span>${recentRows.length} luni</span></div><ol class="stats-compact-list">${recentRows.map(item => `<li><span class="stats-list-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></span><span><strong>${escapeHtml(item.label)} ${item.isCurrent ? currentYear : new Date(currentYear, now.getMonth() - (series.length - 1 - series.indexOf(item)), 1).getFullYear()}</strong><small>${item.appointmentCount} ${item.appointmentCount === 1 ? "programare" : "programări"}</small></span><b>${formatStatsMoney(item.total)}</b></li>`).join("")}</ol></section>${weekSeries.length ? `<section class="stats-panel"><div class="stats-section-heading"><h3>Încasări pe săptămâni</h3><span>${weekSeries.length} intervale</span></div><div class="stats-week-scroll" id="weekChartScroll">${statsBarChart(weekSeries.map(item => ({ label: item.label, value: item.total, meta: item.appointmentCount, isCurrent: item.isCurrent })), { money: true, compact: true, ariaLabel: "Încasări pe săptămâni" })}</div></section>` : ""}`;
 }
 
 function newClientsByMonth(monthsBack = 12) {
@@ -835,8 +914,8 @@ function newClientsByMonth(monthsBack = 12) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const prefix = `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
     let count = 0;
-    for (const c of allClients) {
-      const firstDate = c.visits.reduce((min, v) => (v.date < min ? v.date : min), c.visits[0].date);
+    for (const client of allClients) {
+      const firstDate = client.visits.reduce((min, visit) => (visit.date < min ? visit.date : min), client.visits[0].date);
       if (firstDate.startsWith(prefix)) count++;
     }
     series.push({ label: MONTHS_RO[d.getMonth()].slice(0, 3), count, isCurrent: d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() });
@@ -846,24 +925,41 @@ function newClientsByMonth(monthsBack = 12) {
 
 function renderNewClientsChart() {
   const series = newClientsByMonth(6);
-  const maxVal = Math.max(1, ...series.map(s => s.count));
-  return `<div class="card"><div class="stats-card-title">Cliente noi — ultimele 6 luni</div><div class="chart-row new-clients-chart">${series.map(s => `<div class="chart-col"><div class="chart-value">${s.count > 0 ? s.count : ""}</div><div class="chart-bar-wrap"><div class="chart-bar ${s.isCurrent ? "current" : ""}" style="height: ${Math.max(4, (s.count / maxVal) * 100)}%"></div></div><div class="chart-count">${s.count}</div><div class="chart-label">${s.label}</div></div>`).join("")}</div></div>`;
+  return `<section class="stats-panel"><div class="stats-section-heading"><h3>Cliente noi pe luni</h3><span>Ultimele 6 luni</span></div>${statsBarChart(series.map(item => ({ label: item.label, value: item.count, isCurrent: item.isCurrent })), { ariaLabel: "Cliente noi în ultimele 6 luni" })}</section>`;
 }
 
 function renderClientsStatsSection() {
+  const now = new Date();
   const top = topClientsBySpend(5);
   const newCount = newClientsThisMonth();
   const retention = retentionRate();
-  const rebooking = averageRebookingDays();
-  const highlightsHtml = `<div class="card"><div class="stats-card-title">Cliente — luna aceasta</div><div style="display:flex; gap:12px; margin-top:4px;"><div style="flex:1; text-align:center; background:#1C1A26; border-radius:12px; padding:16px 10px;"><div style="font-family:'Fraunces',serif; font-size:32px; font-weight:700; color:#8B7CF6; line-height:1;">${newCount}</div><div style="font-size:12.5px; color:#A79FBD; margin-top:6px;">Cliente noi</div></div><div style="flex:1; text-align:center; background:#1C1A26; border-radius:12px; padding:16px 10px;"><div style="font-family:'Fraunces',serif; font-size:32px; font-weight:700; color:#34D399; line-height:1;">${retention === null ? "—" : retention.pct + "%"}</div><div style="font-size:12.5px; color:#A79FBD; margin-top:6px;">Rată de retenție</div></div></div>${retention !== null ? `<div style="font-size:11.5px; color:#8B84A0; margin-top:10px;">${retention.retained} din ${retention.base} cliente care au fost la programare luna trecută au revenit și luna asta.</div>` : `<div style="font-size:11.5px; color:#8B84A0; margin-top:10px;">Nu sunt suficiente date din luna trecută pentru a calcula retenția.</div>`}</div>`;
-  const topHtml = top.length === 0 ? `<div class="card"><div class="stats-card-title">Top 5 cliente</div><p class="no-appts">Nicio clientă înregistrată încă.</p></div>` : `<div class="card"><div class="stats-card-title">Top 5 cliente — după total cheltuit</div><ul class="rank-list">${top.map((c, i) => `<li class="rank-item"><div class="rank-num">${i + 1}</div><div><div class="rank-name">${escapeHtml(c.name)}</div><div class="rank-meta">${c.visits.length} ${c.visits.length === 1 ? "vizită" : "vizite"}</div></div><div class="rank-total">${c.total.toFixed(0)} lei</div></li>`).join("")}</ul></div>`;
-  const rebookingHtml = `<div class="card"><div class="stats-card-title">Durată medie de reprogramare</div><div style="text-align:center; background:#1C1A26; border-radius:12px; padding:18px 10px; margin-top:4px;"><div style="font-family:'Fraunces',serif; font-size:32px; font-weight:700; color:#8B7CF6; line-height:1;">${rebooking === null ? "—" : rebooking.avgDays + " zile"}</div><div style="font-size:12.5px; color:#A79FBD; margin-top:6px;">În medie, o clientă revine la programare</div></div>${rebooking !== null ? `<div style="font-size:11.5px; color:#8B84A0; margin-top:10px;">Calculat din ${rebooking.gapCount} intervale între vizite consecutive, la clientele cu minimum 2 programări.</div>` : `<div style="font-size:11.5px; color:#8B84A0; margin-top:10px;">Nu sunt încă suficiente cliente cu minimum 2 programări pentru a calcula media.</div>`}</div>`;
-  return highlightsHtml + renderNewClientsChart() + topHtml + rebookingHtml;
+  const retentionSeries = retentionByMonth(6);
+  const totalClients = clientsList().length;
+  const totalAppointments = appointments.length;
+  const retentionExplanation = retention === null
+    ? "Nu sunt suficiente date din luna trecută pentru a calcula retenția."
+    : `${retention.retained} din ${retention.base} cliente active luna trecută au revenit și luna aceasta.`;
+
+  return `<section class="stats-metric-hero retention-hero"><span class="stats-period-label">Rata de retenție · ${MONTHS_RO[now.getMonth()]} ${now.getFullYear()}</span><strong class="stats-primary-rate">${retention === null ? "—" : `${retention.pct}%`}</strong><small>${escapeHtml(retentionExplanation)}</small></section><section class="stats-panel stats-retention-panel">${retentionLineChart(retentionSeries)}</section><section class="stats-highlight-card"><div><small>Cliente noi</small><strong>${newCount}</strong><span>în ${MONTHS_RO[now.getMonth()].toLowerCase()} ${now.getFullYear()}</span></div><div class="stats-highlight-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 20v-1.5a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6"/></svg></div></section>${renderNewClientsChart()}<section class="stats-summary-strip two"><div><small>Cliente unice</small><strong class="accent">${totalClients}</strong></div><div><small>Programări totale</small><strong>${totalAppointments}</strong></div></section><section class="stats-panel"><div class="stats-section-heading"><h3>Top 5 cliente după încasări</h3><span>${top.length}</span></div>${top.length ? `<ol class="stats-ranking-list">${top.map((client, index) => `<li><span class="stats-rank-number">${index + 1}</span><span><strong>${escapeHtml(client.name)}</strong><small>${client.visits.length} ${client.visits.length === 1 ? "vizită" : "vizite"}</small></span><b>${formatStatsMoney(client.total)}</b></li>`).join("")}</ol>` : `<p class="stats-empty-copy">Nicio clientă înregistrată încă.</p>`}</section>`;
 }
 
 function renderServicesStatsSection() {
-  const topServices = topServicesByCount(5);
-  return topServices.length === 0 ? `<div class="card"><div class="stats-card-title">Top 5 servicii</div><p class="no-appts">Nicio programare înregistrată încă.</p></div>` : `<div class="card"><div class="stats-card-title">Top 5 servicii — după popularitate</div><ul class="rank-list">${topServices.map((s, i) => `<li class="rank-item"><div class="rank-num">${i + 1}</div><div><div class="rank-name">${escapeHtml(s.name)}</div><div class="rank-meta">${s.count} ${s.count === 1 ? "rezervare" : "rezervări"}</div></div><div class="rank-total">${s.total.toFixed(0)} lei</div></li>`).join("")}</ul></div>`;
+  const rebooking = averageRebookingDays();
+  const services = allServicesStats();
+  const sorted = [...services].sort((a, b) => servicesSortMode === "revenue" ? b.total - a.total : b.count - a.count).slice(0, 5);
+  const denominator = services.reduce((sum, item) => sum + (servicesSortMode === "revenue" ? item.total : item.count), 0) || 1;
+  const rebookingText = rebooking === null
+    ? "Nu sunt încă suficiente cliente cu minimum 2 programări pentru a calcula media."
+    : `În medie, o clientă revine la programare după aproximativ ${rebooking.avgDays} zile.`;
+  const calculationText = rebooking === null
+    ? "Calculul va deveni disponibil după ce există vizite consecutive."
+    : `Calculat din ${rebooking.gapCount} intervale între vizite consecutive, la clientele cu minimum 2 programări.`;
+
+  return `<section class="stats-services-toolbar"><span>După ${servicesSortMode === "revenue" ? "venit" : "popularitate"}</span><div class="stats-sort-control" role="group" aria-label="Sortare servicii"><button type="button" class="${servicesSortMode === "popularity" ? "active" : ""}" data-service-sort="popularity">Popularitate</button><button type="button" class="${servicesSortMode === "revenue" ? "active" : ""}" data-service-sort="revenue">Venit</button></div></section><section class="stats-panel services-panel">${sorted.length ? `<ol class="stats-services-list">${sorted.map((service, index) => {
+    const value = servicesSortMode === "revenue" ? service.total : service.count;
+    const percent = Math.round((value / denominator) * 100);
+    return `<li><span class="stats-rank-number">${index + 1}</span><div class="stats-service-main"><div><strong>${escapeHtml(service.name)}</strong><b>${formatStatsMoney(service.total)}</b></div><div class="stats-service-meta"><span>${service.count} ${service.count === 1 ? "rezervare" : "rezervări"}</span><span>${percent}%</span></div><div class="stats-service-track"><span style="width:${Math.max(2, percent)}%"></span></div></div></li>`;
+  }).join("")}</ol>` : `<p class="stats-empty-copy">Nicio programare înregistrată încă.</p>`}</section><section class="stats-rebooking-card"><div><small>Durată medie între programări</small><strong>${rebooking === null ? "—" : `${rebooking.avgDays} zile`}</strong><p>${escapeHtml(rebookingText)}</p></div><span class="stats-rebooking-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></span></section><div class="stats-calculation-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>${escapeHtml(calculationText)}</span></div>`;
 }
 
 function renderExpenses() {
