@@ -960,7 +960,7 @@ function renderServicesStatsSection() {
   }).join("")}</ol>` : `<p class="stats-empty-copy">Nicio programare înregistrată încă.</p>`}</section><section class="stats-rebooking-card"><div><small>Durată medie între programări</small><strong>${rebooking === null ? "—" : `${rebooking.avgDays} zile`}</strong><p>${escapeHtml(rebookingText)}</p></div><span class="stats-rebooking-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></span></section><div class="stats-calculation-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>${escapeHtml(calculationText)}</span></div>`;
 }
 
-function renderExpenses() {
+function renderExpensesLegacy() {
   if (!els.expensesWrap) return;
   const prefix = `${expYear}-${pad(expMonth + 1)}`;
   const monthItems = expenses.filter(e => e.date.startsWith(prefix)).sort((a, b) => b.date.localeCompare(a.date));
@@ -994,12 +994,83 @@ function renderExpenses() {
       await saveExpense({ item, amount, date });
       expFormOpen = false;
       showToast("✓ Cheltuială adăugată");
+      renderExpenses();
     });
     document.getElementById("expFormClose").addEventListener("click", () => { expFormOpen = false; renderExpenses(); });
   } else {
     document.getElementById("expFormOpenBtn").addEventListener("click", () => { expFormOpen = true; renderExpenses(); });
   }
   els.expensesWrap.querySelectorAll("[data-delexp]").forEach(btn => { btn.addEventListener("click", () => showConfirmExpense(btn.dataset.delexp)); });
+}
+
+function expenseFormHtml(todayStr) {
+  return `<div class="expense-modal" role="dialog" aria-modal="true" aria-labelledby="expenseFormTitle"><div class="expense-backdrop" id="expenseBackdrop" aria-hidden="true"></div><form id="expForm" class="expense-sheet"><div class="sheet-handle" aria-hidden="true"></div><header class="expense-sheet-header"><div><span>Cheltuială nouă</span><h2 id="expenseFormTitle">Adaugă cheltuială</h2><p>Înregistrează un cost al salonului</p></div><button type="button" class="sheet-close" id="expFormClose" aria-label="Închide formularul"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header><div class="expense-sheet-body"><label class="expense-field"><span>Articol / descriere</span><input type="text" id="exp_item" placeholder="ex: Gel UV, pensule, folie..." autocomplete="off" required></label><div class="expense-form-row"><label class="expense-field money"><span>Sumă (lei)</span><input type="number" id="exp_amount" min="0.01" step="0.01" placeholder="ex: 85" required></label><label class="expense-field"><span>Data</span><input type="date" id="exp_date" value="${todayStr}" required></label></div><div id="exp_error" aria-live="polite"></div></div><footer class="expense-sheet-footer"><button type="submit" class="expense-submit-btn">Adaugă cheltuiala</button></footer></form></div>`;
+}
+
+function renderExpenses() {
+  if (!els.expensesWrap) return;
+  const prefix = `${expYear}-${pad(expMonth + 1)}`;
+  const monthItems = expenses.filter(expense => expense.date.startsWith(prefix)).sort((a, b) => b.date.localeCompare(a.date));
+  const totalExpenses = monthItems.reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+  const totalRevenue = appointments.filter(appointment => appointment.date.startsWith(prefix)).reduce((sum, appointment) => sum + (Number(appointment.cost) || 0), 0);
+  const profit = totalRevenue - totalExpenses;
+  const profitClass = profit >= 0 ? "profit-positive" : "profit-negative";
+  const profitSign = profit > 0 ? "+" : "";
+  const yearPrefix = `${expYear}-`;
+  const yearExpenses = expenses.filter(expense => expense.date.startsWith(yearPrefix)).reduce((sum, expense) => sum + (Number(expense.amount) || 0), 0);
+  const yearRevenue = appointments.filter(appointment => appointment.date.startsWith(yearPrefix)).reduce((sum, appointment) => sum + (Number(appointment.cost) || 0), 0);
+  const yearProfit = yearRevenue - yearExpenses;
+  const yearProfitClass = yearProfit >= 0 ? "profit-positive" : "profit-negative";
+  const yearProfitSign = yearProfit > 0 ? "+" : "";
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+  const listHtml = monthItems.length === 0
+    ? `<div class="expenses-empty">${EMPTY_ICON}<h3>Nicio cheltuială</h3><p>Nu există cheltuieli în ${MONTHS_RO[expMonth].toLowerCase()} ${expYear}.</p></div>`
+    : `<ol class="expenses-list">${monthItems.map(expense => `<li class="expense-list-item swipe-item"><div class="swipe-content expense-swipe-content"><span class="expense-list-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 7.5V5.8a2 2 0 0 0-2-2h-13a3 3 0 0 0 0 6h15v10.4h-15a3 3 0 0 1-3-3V6.8M16.5 14.8h.01"/></svg></span><span class="expense-list-copy"><strong>${escapeHtml(expense.item)}</strong><small>${escapeHtml(clientDateLabel(expense.date))}</small></span><b>-${formatStatsMoney(expense.amount)}</b></div><div class="swipe-actions"><button class="icon-btn danger" type="button" data-delexp="${expense.id}" aria-label="Șterge cheltuiala"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`).join("")}</ol>`;
+
+  els.expensesWrap.innerHTML = `<div class="expenses-sticky-header"><div class="section-page-header"><div><span>Salon acasă</span><h2>Cheltuieli</h2></div><div class="section-page-icon expense"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 7.5V5.8a2 2 0 0 0-2-2h-13a3 3 0 0 0 0 6h15v10.4h-15a3 3 0 0 1-3-3V6.8M16.5 14.8h.01"/></svg></div></div><div class="expenses-month-nav"><button type="button" id="expPrevMonth" aria-label="Luna anterioară"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><strong>${MONTHS_RO[expMonth]} ${expYear}</strong><button type="button" id="expNextMonth" aria-label="Luna următoare"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div></div><div class="expenses-page-content"><section class="expenses-profit-hero"><span>Profit net · ${MONTHS_RO[expMonth].toLowerCase()} ${expYear}</span><strong class="${profitClass}">${profitSign}${formatStatsMoney(profit)}</strong><small>Încasări minus cheltuielile înregistrate în luna selectată</small></section><section class="expenses-summary-strip"><div><small>Încasări</small><strong>${formatStatsMoney(totalRevenue)}</strong></div><div><small>Cheltuieli</small><strong>${formatStatsMoney(totalExpenses)}</strong></div></section><section class="expenses-year-panel"><div class="expenses-section-heading"><h3>Rezumat ${expYear}</h3></div><div class="expenses-year-grid"><div><small>Cheltuieli totale</small><strong>${formatStatsMoney(yearExpenses)}</strong></div><div><small>Profit total</small><strong class="${yearProfitClass}">${yearProfitSign}${formatStatsMoney(yearProfit)}</strong></div></div></section><section class="expenses-list-panel"><div class="expenses-section-heading"><div><h3>Cheltuieli recente</h3><span>${monthItems.length} ${monthItems.length === 1 ? "înregistrare" : "înregistrări"}</span></div><button type="button" id="expFormOpenBtn" aria-label="Adaugă cheltuială"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>${listHtml}</section></div>${expFormOpen ? expenseFormHtml(todayStr) : ""}`;
+
+  document.getElementById("expPrevMonth").addEventListener("click", () => {
+    if (expMonth === 0) { expMonth = 11; expYear -= 1; }
+    else expMonth -= 1;
+    renderExpenses();
+  });
+  document.getElementById("expNextMonth").addEventListener("click", () => {
+    if (expMonth === 11) { expMonth = 0; expYear += 1; }
+    else expMonth += 1;
+    renderExpenses();
+  });
+  document.getElementById("expFormOpenBtn").addEventListener("click", () => {
+    expFormOpen = true;
+    renderExpenses();
+  });
+
+  if (expFormOpen) {
+    const closeExpenseForm = () => { expFormOpen = false; renderExpenses(); };
+    document.getElementById("expFormClose").addEventListener("click", closeExpenseForm);
+    document.getElementById("expenseBackdrop").addEventListener("click", closeExpenseForm);
+    document.getElementById("expForm").addEventListener("submit", async event => {
+      event.preventDefault();
+      const item = document.getElementById("exp_item").value.trim();
+      const amount = Number(document.getElementById("exp_amount").value);
+      const date = document.getElementById("exp_date").value;
+      const errorEl = document.getElementById("exp_error");
+      errorEl.innerHTML = "";
+      if (!item) { errorEl.innerHTML = `<div class="form-error">Adaugă descrierea articolului.</div>`; return; }
+      if (!amount || amount <= 0) { errorEl.innerHTML = `<div class="form-error">Adaugă o sumă validă.</div>`; return; }
+      if (!date) { errorEl.innerHTML = `<div class="form-error">Selectează data.</div>`; return; }
+      await saveExpense({ item, amount, date });
+      expFormOpen = false;
+      showToast("✓ Cheltuială adăugată");
+      renderExpenses();
+    });
+  }
+
+  els.expensesWrap.querySelectorAll("[data-delexp]").forEach(button => {
+    button.addEventListener("click", () => showConfirmExpense(button.dataset.delexp));
+  });
+  setupSwipeActions(els.expensesWrap);
 }
 
 function showConfirmExpense(id) {
