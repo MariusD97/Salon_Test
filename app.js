@@ -133,6 +133,7 @@ function activateView(name) {
     if (search) search.hidden = false;
     renderClients();
   }
+  document.body.classList.toggle("calendar-view-open", name === "calendar");
   document.body.classList.toggle("stats-view-open", name === "stats");
   document.body.classList.toggle("clients-view-open", name === "clients");
   document.body.classList.toggle("expenses-view-open", name === "expenses");
@@ -378,8 +379,8 @@ function dayIntensity(count) {
 
 function renderAll() {
   const stats = monthStats();
-  els.statCount.innerHTML = `${stats.countPast} <span style="display:block; margin-top:2px;">Total la zi</span><div style="margin-top: 6px; border-top: 1px solid #8B7CF62E; padding-top: 6px;">${stats.count} <span style="display:block;">Total în ${MONTHS_RO[month].toLowerCase()}</span></div>`;
-  els.statRevenue.innerHTML = `${stats.revenuePast.toFixed(0)} lei <span style="display:block; margin-top:2px;">Total la zi</span><div style="margin-top: 6px; border-top: 1px solid #34D3992E; padding-top: 6px;">${stats.revenueTotal.toFixed(0)} lei <span style="display:block;">Total lunar</span></div>`;
+  els.statCount.innerHTML = `<span class="calendar-summary-label">Programări</span><strong>${stats.countPast}</strong><small>Efectuate la zi</small><div><b>${stats.count}</b><span>Total în ${MONTHS_RO[month].toLowerCase()}</span></div>`;
+  els.statRevenue.innerHTML = `<span class="calendar-summary-label">Încasări</span><strong>${formatStatsMoney(stats.revenuePast)}</strong><small>Încasați la zi</small><div><b>${formatStatsMoney(stats.revenueTotal)}</b><span>Total lunar programat</span></div>`;
   renderCalendarMode();
   renderTodayAgenda();
   renderCalendar();
@@ -469,10 +470,10 @@ function renderTodayAgenda() {
       const nextLabel = new Intl.DateTimeFormat("ro-RO", { weekday: "long", day: "numeric", month: "long" }).format(nextDate);
       nextHtml = `<button class="next-appointment" type="button" data-jump-date="${next.date}"><span>Următoarea programare</span><strong>${nextLabel.charAt(0).toUpperCase() + nextLabel.slice(1)}, ${next.time}</strong><small>${escapeHtml(next.client)} · ${escapeHtml(next.service || "Serviciu personalizat")}</small></button>`;
     }
-    emptyHtml = `<div class="agenda-empty">${EMPTY_ICON}<h3>Nicio programare</h3><p>Ziua este liberă.</p></div>${nextHtml}`;
+    emptyHtml = `<div class="agenda-empty">${EMPTY_ICON}<h3>Nicio programare</h3><p>Ziua este liberă.</p><button class="agenda-empty-action" type="button" data-agenda-add>Programare nouă</button></div>${nextHtml}`;
   }
 
-  els.todayAgenda.innerHTML = `<div class="agenda-header"><div class="agenda-date-nav"><button class="nav-btn" type="button" data-agenda-day="-1" aria-label="Ziua precedentă">‹</button><div class="agenda-date-copy"><h2>${agendaDateLabel(agendaDate)}</h2><p>${list.length} ${list.length === 1 ? "programare" : "programări"} · ${revenue.toFixed(0)} lei estimați</p></div><button class="nav-btn" type="button" data-agenda-day="1" aria-label="Ziua următoare">›</button></div>${!isToday ? `<button class="today-return-btn" type="button" data-agenda-today>Azi</button>` : ""}</div>${appointmentsHtml}${emptyHtml}`;
+  els.todayAgenda.innerHTML = `<div class="agenda-header"><div class="agenda-date-nav"><button class="nav-btn" type="button" data-agenda-day="-1" aria-label="Ziua precedentă"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><div class="agenda-date-copy"><h2>${agendaDateLabel(agendaDate)}</h2><p>${list.length} ${list.length === 1 ? "programare" : "programări"} · ${formatStatsMoney(revenue)} estimați</p></div><button class="nav-btn" type="button" data-agenda-day="1" aria-label="Ziua următoare"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div>${!isToday ? `<button class="today-return-btn" type="button" data-agenda-today>Azi</button>` : ""}</div>${appointmentsHtml}${emptyHtml}`;
 
   els.todayAgenda.querySelectorAll("[data-agenda-day]").forEach(button => {
     button.addEventListener("click", () => { agendaDate = shiftDateKey(agendaDate, Number(button.dataset.agendaDay)); selectedDate = agendaDate; renderAll(); });
@@ -525,6 +526,7 @@ function renderDayCard() {
   const label = `${d} ${MONTHS_RO[m - 1]} ${y}`;
   const dayMap = apptsByDay();
   const list = dayMap[selectedDate] || [];
+  const revenue = list.reduce((sum, appointment) => sum + (Number(appointment.cost) || 0), 0);
   const isEditingHere = editingId !== null && editingSurface === "calendar";
   let bodyHtml;
   if (isEditingHere) {
@@ -533,9 +535,9 @@ function renderDayCard() {
     bodyHtml = `<p class="no-appts">Nicio programare în această zi.</p>`;
   } else {
     const firstVisitIds = firstVisitIdsSet();
-    bodyHtml = `<ul class="appt-list">${list.map(a => `<li class="appt-item swipe-item"><div class="swipe-content appt-swipe-content"><div class="appt-time">${a.time}–${minutesToTime(timeToMinutes(a.time) + Number(a.duration))}</div><div><div class="appt-client">${escapeHtml(a.client)}${firstVisitIds.has(a.id) ? ` <span class="new-badge">✨ Nouă</span>` : ""}</div>${a.service ? `<div class="appt-service">${escapeHtml(a.service)}</div>` : ""}${a.notes ? `<div class="appt-notes">${escapeHtml(a.notes)}</div>` : ""}</div><div class="appt-cost">${Number(a.cost).toFixed(0)} lei</div></div><div class="swipe-actions"><button class="icon-btn" data-edit="${a.id}" aria-label="Editează"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" data-del="${a.id}" aria-label="Șterge"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`).join("")}</ul>`;
+    bodyHtml = `<ul class="appt-list">${list.map(a => `<li class="appt-item swipe-item"><div class="swipe-content appt-swipe-content"><div class="appt-time">${a.time}–${minutesToTime(timeToMinutes(a.time) + Number(a.duration))}</div><div><div class="appt-client">${escapeHtml(a.client)}${firstVisitIds.has(a.id) ? ` <span class="new-badge">Nouă</span>` : ""}</div>${a.service ? `<div class="appt-service">${escapeHtml(a.service)}</div>` : ""}${a.notes ? `<div class="appt-notes">${escapeHtml(a.notes)}</div>` : ""}</div><div class="appt-cost">${Number(a.cost).toFixed(0)} lei</div></div><div class="swipe-actions"><button class="icon-btn" data-edit="${a.id}" aria-label="Editează"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" data-del="${a.id}" aria-label="Șterge"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`).join("")}</ul>`;
   }
-  els.dayCard.innerHTML = `<div class="day-card-header"><h2 class="day-card-title">${label}</h2></div>${bodyHtml}`;
+  els.dayCard.innerHTML = `<div class="day-card-header"><div><h2 class="day-card-title">${label}</h2><p>${list.length} ${list.length === 1 ? "programare" : "programări"} · ${formatStatsMoney(revenue)}</p></div></div>${bodyHtml}`;
   if (!isEditingHere) {
     els.dayCard.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => { editingId = b.dataset.edit; editingSurface = "calendar"; formDate = selectedDate; renderDayCard(); }));
     els.dayCard.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => showConfirm(b.dataset.del)));
