@@ -2224,16 +2224,6 @@ body.calendar-view-open { padding-top: 0; }
 }
 .agenda-empty h3 { color: #EAE6EF; font-size: 18px; }
 .agenda-empty p { margin: 6px 0 14px; color: #817A8E; font-size: 11px; }
-.agenda-empty-action {
-  min-height: 40px;
-  padding: 8px 15px;
-  border: 0;
-  border-radius: 10px;
-  background: #8F7CFF;
-  color: #0B0911;
-  font-size: 11.5px;
-  font-weight: 700;
-}
 .next-appointment {
   margin-top: 10px;
   padding: 13px 14px;
@@ -2305,12 +2295,24 @@ body.calendar-view-open { padding-top: 0; }
 .calendar-day-panel .appt-list { gap: 0; overflow: hidden; border: 1px solid #272431; border-radius: 12px; background: #171620; }
 .calendar-day-panel .appt-item { min-height: 64px; padding: 0; border: 0; border-radius: 0; background: transparent; }
 .calendar-day-panel .appt-item + .appt-item { border-top: 1px solid #272431; }
-.calendar-day-panel .appt-swipe-content { min-height: 64px; padding: 11px 12px; background: #171620; }
+.calendar-day-panel .appt-swipe-content {
+  min-height: 64px;
+  grid-template-columns: auto minmax(0, 1fr) minmax(64px, auto);
+  padding: 11px 12px;
+  background: #171620;
+}
 .calendar-day-panel .appt-time { color: #9B8BFF; font-size: 10.5px; }
 .calendar-day-panel .appt-client { color: #DED9E5; font-size: 12.5px; }
 .calendar-day-panel .appt-service { color: #817A8E; font-size: 10px; }
 .calendar-day-panel .appt-notes { color: #716A7B; font-size: 9.5px; }
-.calendar-day-panel .appt-cost { color: #35D6A0; font-size: 11px; }
+.calendar-day-panel .appt-cost {
+  min-width: 64px;
+  justify-self: end;
+  color: #35D6A0;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
 .calendar-day-panel .new-badge { margin-left: 3px; padding: 2px 5px; border-radius: 5px; background: rgba(143, 124, 255, 0.08); color: #9B8BFF; font-size: 8px; }
 
 @media (max-width: 350px) {

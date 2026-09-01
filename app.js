@@ -67,7 +67,7 @@ let editingId = null;
 let editingSurface = null;
 let formDate = null;
 let agendaDate = todayDateKey();
-let calendarMode = localStorage.getItem("calendarViewMode") === "calendar" ? "calendar" : "today";
+let calendarMode = "today";
 let prefillClient = null;
 let clientSearchQuery = "";
 let expenses = [];
@@ -472,7 +472,7 @@ function renderTodayAgenda() {
       const nextLabel = new Intl.DateTimeFormat("ro-RO", { weekday: "long", day: "numeric", month: "long" }).format(nextDate);
       nextHtml = `<button class="next-appointment" type="button" data-jump-date="${next.date}"><span>Următoarea programare</span><strong>${nextLabel.charAt(0).toUpperCase() + nextLabel.slice(1)}, ${next.time}</strong><small>${escapeHtml(next.client)} · ${escapeHtml(next.service || "Serviciu personalizat")}</small></button>`;
     }
-    emptyHtml = `<div class="agenda-empty">${EMPTY_ICON}<h3>Nicio programare</h3><p>Ziua este liberă.</p><button class="agenda-empty-action" type="button" data-agenda-add>Programare nouă</button></div>${nextHtml}`;
+    emptyHtml = `<div class="agenda-empty">${EMPTY_ICON}<h3>Nicio programare</h3><p>Ziua este liberă.</p></div>${nextHtml}`;
   }
 
   els.todayAgenda.innerHTML = `<div class="agenda-header"><div class="agenda-date-nav"><button class="nav-btn" type="button" data-agenda-day="-1" aria-label="Ziua precedentă"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><div class="agenda-date-copy"><h2>${agendaDateLabel(agendaDate)}</h2><p>${list.length} ${list.length === 1 ? "programare" : "programări"} · ${formatStatsMoney(revenue)} estimați</p></div><button class="nav-btn" type="button" data-agenda-day="1" aria-label="Ziua următoare"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg></button></div>${!isToday ? `<button class="today-return-btn" type="button" data-agenda-today>Azi</button>` : ""}</div>${appointmentsHtml}${emptyHtml}`;
@@ -481,9 +481,6 @@ function renderTodayAgenda() {
     button.addEventListener("click", () => { agendaDate = shiftDateKey(agendaDate, Number(button.dataset.agendaDay)); selectedDate = agendaDate; renderAll(); });
   });
   els.todayAgenda.querySelector("[data-agenda-today]")?.addEventListener("click", () => { agendaDate = todayKey; selectedDate = agendaDate; renderAll(); });
-  els.todayAgenda.querySelectorAll("[data-agenda-add]").forEach(button => {
-    button.addEventListener("click", () => { selectedDate = agendaDate; editingId = "new"; editingSurface = "today"; renderTodayAgenda(); });
-  });
   els.todayAgenda.querySelectorAll("[data-agenda-edit]").forEach(button => {
     button.addEventListener("click", () => { selectedDate = agendaDate; editingId = button.dataset.agendaEdit; editingSurface = "today"; formDate = agendaDate; renderTodayAgenda(); });
   });
