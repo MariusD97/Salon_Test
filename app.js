@@ -894,7 +894,7 @@ function renderRevenueSection() {
     return { name: MONTHS_RO[index], total: appointments.filter(item => item.date.startsWith(prefix)).reduce((sum, item) => sum + (Number(item.cost) || 0), 0) };
   });
   const yearTotal = yearlyMonths.reduce((sum, item) => sum + item.total, 0);
-  const closedMonths = yearlyMonths.slice(0, now.getMonth());
+  const closedMonths = yearlyMonths.slice(0, now.getMonth()).filter(item => item.total > 0);
   const closedMonthsTotal = closedMonths.reduce((sum, item) => sum + item.total, 0);
   const monthlyAverage = closedMonths.length ? closedMonthsTotal / closedMonths.length : 0;
   const bestMonth = [...yearlyMonths].sort((a, b) => b.total - a.total)[0];

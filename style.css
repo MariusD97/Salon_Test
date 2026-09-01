@@ -1226,6 +1226,7 @@ body.client-profile-open #clientSearch {
 
 /* Premium statistics experience */
 body.stats-view-open > .header { display: none; }
+body.stats-view-open { padding-top: 0; }
 
 .stats-wrap {
   width: min(100%, 620px);
@@ -1236,13 +1237,22 @@ body.stats-view-open > .header { display: none; }
 
 .stats-sticky-header {
   position: sticky;
-  top: env(safe-area-inset-top);
+  top: 0;
   z-index: 50;
+  width: 100%;
   margin-bottom: 18px;
+  padding-top: calc(14px + env(safe-area-inset-top));
   padding-bottom: 10px;
-  background: rgba(11, 10, 18, 0.97);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  isolation: isolate;
+  background: #0B0A12;
+}
+
+.stats-sticky-header::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0 -20px -1px;
+  background: #0B0A12;
 }
 
 .stats-page-header {
