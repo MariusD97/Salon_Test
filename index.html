@@ -83,7 +83,16 @@
 
   <div id="view-clients">
     <div class="clients-wrap">
-      <input type="text" id="clientSearch" class="client-search" placeholder="Caută după numele clientei...">
+      <div class="clients-sticky-header">
+        <div class="section-page-header">
+          <div><span>Salon acasă</span><h2>Cliente</h2></div>
+          <div class="section-page-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 20v-1.5a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM21.5 20v-1.5a4 4 0 0 0-3-3.85M15.5 2.65a4 4 0 0 1 0 7.7"/></svg></div>
+        </div>
+        <label class="client-search-shell" for="clientSearch">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          <input type="text" id="clientSearch" class="client-search" placeholder="Caută după numele clientei...">
+        </label>
+      </div>
       <div id="clientListInner"></div>
     </div>
   </div>

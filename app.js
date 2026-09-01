@@ -134,6 +134,8 @@ function activateView(name) {
     renderClients();
   }
   document.body.classList.toggle("stats-view-open", name === "stats");
+  document.body.classList.toggle("clients-view-open", name === "clients");
+  document.body.classList.toggle("expenses-view-open", name === "expenses");
   Object.entries(primaryViews).forEach(([viewName, item]) => {
     const isActive = viewName === name;
     item.tab.classList.toggle("active", isActive);
