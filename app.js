@@ -428,6 +428,8 @@ function renderCalendarMode() {
   els.showCalendar.setAttribute("aria-pressed", String(!isTodayMode));
   els.todayAgenda.hidden = !isTodayMode;
   els.calendarMonthView.hidden = isTodayMode;
+  const summaryPanel = document.querySelector(".calendar-summary-panel");
+  if (summaryPanel) summaryPanel.hidden = !isTodayMode;
 }
 
 function nextAppointmentAfter(dateStr) {

@@ -2080,6 +2080,7 @@ body.calendar-view-open { padding-top: 0; }
 .calendar-view-btn.active { background: #8F7CFF; color: #0B0911; }
 .calendar-view-btn:focus-visible { outline: 2px solid #F5F3F9; outline-offset: -3px; }
 
+.calendar-summary-panel[hidden] { display: none; }
 .calendar-summary-panel {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2134,13 +2135,13 @@ body.calendar-view-open { padding-top: 0; }
   display: block;
   margin-top: 13px;
   overflow-wrap: anywhere;
-  color: #F3F0F7;
-  font-family: 'Fraunces', serif;
-  font-size: 25px;
-  line-height: 1.05;
-  font-weight: 600;
+  color: #C8C2D1;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 700;
 }
-.calendar-summary-column.revenue .calendar-summary-values > strong { color: #35D6A0; font-size: 21px; }
+.calendar-summary-column.revenue .calendar-summary-values > strong { color: #A9EAD2; font-size: 12px; }
 .calendar-summary-values > small { display: block; margin-top: 5px; color: #817A8E; font-size: 9.5px; line-height: 1.35; }
 .calendar-summary-values > div {
   min-width: 0;
@@ -2151,9 +2152,9 @@ body.calendar-view-open { padding-top: 0; }
   padding-top: 10px;
   border-top: 1px solid #272431;
 }
-.calendar-summary-values > div b { overflow-wrap: anywhere; color: #C8C2D1; font-size: 12.5px; line-height: 1.3; font-weight: 700; }
-.calendar-summary-column.revenue .calendar-summary-values > div b { color: #A9EAD2; }
-.calendar-summary-values > div span { color: #746D7E; font-size: 9px; line-height: 1.35; }
+.calendar-summary-values > div b { overflow-wrap: anywhere; color: #F3F0F7; font-family: 'Fraunces', serif; font-size: 24px; line-height: 1.08; font-weight: 600; }
+.calendar-summary-column.revenue .calendar-summary-values > div b { color: #35D6A0; font-size: 20px; }
+.calendar-summary-values > div span { color: #817A8E; font-size: 9.5px; line-height: 1.35; }
 
 .today-wrap { width: 100%; max-width: none; margin: 0; }
 .agenda-header {
@@ -2280,10 +2281,22 @@ body.calendar-view-open { padding-top: 0; }
 .calendar-grid-panel .day-cell.today > span:first-child { border-color: #8F7CFF; color: #F5F3F9; }
 .calendar-grid-panel .day-cell.selected { border: 0; background: transparent; }
 .calendar-grid-panel .day-cell.selected > span:first-child { border-color: #8F7CFF; background: #8F7CFF; color: #0B0911; font-weight: 700; }
-.calendar-grid-panel .swatch { width: 13px; height: 3px; border-radius: 999px; background: #8F7CFF; }
-.calendar-grid-panel .swatch.c1 { background: rgba(143, 124, 255, 0.5); }
-.calendar-grid-panel .swatch.c2 { background: rgba(143, 124, 255, 0.76); }
-.calendar-grid-panel .swatch.c4 { background: #8F7CFF; }
+.calendar-grid-panel .swatch { width: 7px; height: 7px; border-radius: 50%; }
+.calendar-grid-panel .swatch.c1 { background: #35D6A0; }
+.calendar-grid-panel .swatch.c2 { background: #F0C24B; }
+.calendar-grid-panel .swatch.c4 { background: #F1616B; }
+.calendar-intensity-legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #272431;
+}
+.calendar-intensity-legend > span { display: inline-flex; align-items: center; gap: 5px; color: #817A8E; font-size: 9.5px; line-height: 1; }
+.calendar-intensity-legend b { color: #A9A2B3; font-weight: 600; }
+.calendar-intensity-legend .swatch { flex: 0 0 auto; }
 
 .calendar-day-panel .day-card-header { margin-bottom: 10px; }
 .calendar-day-panel .day-card-header h2 { color: #F1EEF5; font-size: 17px; }
@@ -2302,8 +2315,10 @@ body.calendar-view-open { padding-top: 0; }
 
 @media (max-width: 350px) {
   .calendar-summary-column { min-height: 150px; padding-left: 11px; padding-right: 11px; }
-  .calendar-summary-values > strong { font-size: 22px; }
-  .calendar-summary-column.revenue .calendar-summary-values > strong { font-size: 18px; }
+  .calendar-summary-values > strong { font-size: 11.5px; }
+  .calendar-summary-column.revenue .calendar-summary-values > strong { font-size: 10.5px; }
+  .calendar-summary-values > div b { font-size: 21px; }
+  .calendar-summary-column.revenue .calendar-summary-values > div b { font-size: 17px; }
   .calendar-grid-panel .day-cell > span:first-child { width: 25px; height: 25px; }
   .agenda-row { grid-template-columns: 42px 12px minmax(0, 1fr); gap: 5px; }
   .agenda-appointment-main { padding-left: 10px; padding-right: 10px; }
