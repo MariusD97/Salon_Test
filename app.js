@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -58,6 +58,67 @@ function durationLabel(minutes) {
   if (hours && rest) return `${hours}h ${rest} min`;
   if (hours) return `${hours}h`;
   return `${rest} min`;
+}
+
+function timestampDate(value) {
+  if (!value) return null;
+  if (typeof value.toDate === "function") return value.toDate();
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function bucharestDateKey(value) {
+  const date = timestampDate(value);
+  if (!date) return null;
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Bucharest",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).formatToParts(date);
+  const part = type => parts.find(item => item.type === type)?.value;
+  return `${part("year")}-${part("month")}-${part("day")}`;
+}
+
+function daysBetweenDateKeys(startKey, endKey) {
+  const [startYear, startMonth, startDay] = startKey.split("-").map(Number);
+  const [endYear, endMonth, endDay] = endKey.split("-").map(Number);
+  return Math.round((Date.UTC(endYear, endMonth - 1, endDay) - Date.UTC(startYear, startMonth - 1, startDay)) / 86400000);
+}
+
+function bookingLeadDays(appointment) {
+  const createdKey = bucharestDateKey(appointment.createdAt);
+  if (!createdKey || !appointment.date) return null;
+  const days = daysBetweenDateKeys(createdKey, appointment.date);
+  return days >= 0 ? days : null;
+}
+
+function bookingLeadStats(items = appointments) {
+  const values = items.map(bookingLeadDays).filter(value => value !== null).sort((a, b) => a - b);
+  if (values.length === 0) return null;
+  const middle = Math.floor(values.length / 2);
+  const median = values.length % 2 ? values[middle] : (values[middle - 1] + values[middle]) / 2;
+  const buckets = [
+    { label: "În aceeași zi", min: 0, max: 0 },
+    { label: "1–3 zile", min: 1, max: 3 },
+    { label: "4–7 zile", min: 4, max: 7 },
+    { label: "8–14 zile", min: 8, max: 14 },
+    { label: "Peste 14 zile", min: 15, max: Infinity }
+  ].map(bucket => {
+    const count = values.filter(value => value >= bucket.min && value <= bucket.max).length;
+    return { ...bucket, count, percent: Math.round((count / values.length) * 100) };
+  });
+  return {
+    count: values.length,
+    average: values.reduce((sum, value) => sum + value, 0) / values.length,
+    median,
+    values,
+    buckets
+  };
+}
+
+function formatLeadDays(value) {
+  return new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 1 }).format(value);
 }
 
 let db = null;
@@ -228,8 +289,15 @@ async function saveServicePrices(prices) {
 async function saveAppointment(data, id) {
   if (!db) return false;
   try {
-    if (id) await updateDoc(doc(db, "appointments", id), data);
-    else await addDoc(collection(db, "appointments"), data);
+    if (id) {
+      await updateDoc(doc(db, "appointments", id), { ...data, updatedAt: serverTimestamp() });
+    } else {
+      await addDoc(collection(db, "appointments"), {
+        ...data,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+    }
     showError(false);
     return true;
   } catch (error) {
@@ -843,6 +911,14 @@ function renderClientProfile(client) {
   const historyVisits = client.visits;
   const money = new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 0 });
   const initials = clientInitials(client.name);
+  const leadStats = bookingLeadStats(client.visits);
+  let leadTimeHtml = `<div class="client-profile-stat lead-time"><span class="client-stat-icon lead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><strong>—</strong><small>Anticiparea va apărea la următoarea programare eligibilă</small></div>`;
+  if (leadStats?.count === 1) {
+    const days = leadStats.values[0];
+    leadTimeHtml = `<div class="client-profile-stat lead-time"><span class="client-stat-icon lead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><strong>${days} ${days === 1 ? "zi" : "zile"} înainte</strong><small>Anticiparea ultimei programări eligibile</small></div>`;
+  } else if (leadStats) {
+    leadTimeHtml = `<div class="client-profile-stat lead-time"><span class="client-stat-icon lead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><strong>${formatLeadDays(leadStats.average)} zile înainte</strong><small>Se programează în medie · ${leadStats.count} programări eligibile</small></div>`;
+  }
 
   const nextHtml = nextVisit
     ? `<button type="button" class="client-next-card" data-client-appointment="${nextVisit.id}"><span class="client-next-date">${escapeHtml(clientDateLabel(nextVisit.date))}</span><span class="client-next-time">${escapeHtml(nextVisit.time)}</span><span class="client-next-service">${escapeHtml(nextVisit.service || "Serviciu personalizat")} · ${escapeHtml(durationLabel(nextVisit.duration))}</span>${nextVisit.notes ? `<span class="client-next-note">${escapeHtml(nextVisit.notes)}</span>` : ""}<span class="client-next-price">${money.format(Number(nextVisit.cost) || 0)} lei</span><span class="client-profile-chevron" aria-hidden="true">›</span></button>`
@@ -852,7 +928,7 @@ function renderClientProfile(client) {
     ? `<ol class="client-profile-history">${historyVisits.map(visit => `<li><button type="button" class="client-history-row" data-client-appointment="${visit.id}"><span class="client-history-line" aria-hidden="true"></span><span class="client-history-copy"><span class="client-history-date">${escapeHtml(clientDateLabel(visit.date))} · ${escapeHtml(visit.time)}</span><span class="client-history-service">${escapeHtml(visit.service || "Serviciu personalizat")}</span>${visit.notes ? `<span class="client-history-note">${escapeHtml(visit.notes)}</span>` : ""}</span><span class="client-history-price">${money.format(Number(visit.cost) || 0)} lei</span><span class="client-profile-chevron" aria-hidden="true">›</span></button></li>`).join("")}</ol>`
     : `<div class="client-profile-empty compact"><p>Nu există programări în istoric.</p></div>`;
 
-  els.clientListInner.innerHTML = `<article class="client-profile-page"><header class="client-profile-header"><button type="button" class="client-profile-back" data-client-back aria-label="Înapoi la lista de cliente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span>Profil clientă</span></header><section class="client-profile-hero"><div class="client-avatar" aria-hidden="true">${escapeHtml(initials)}</div><div class="client-profile-identity"><h2>${escapeHtml(client.name)}</h2><p>${client.visits.length} ${client.visits.length === 1 ? "vizită înregistrată" : "vizite înregistrate"}</p></div></section><button type="button" class="client-primary-action" data-profile-reschedule="${escapeHtml(client.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Programare nouă</span></button><section class="client-profile-stats" aria-label="Rezumat clientă"><div class="client-profile-stat"><span class="client-stat-icon purple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></span><strong>${client.visits.length}</strong><small>Programări</small></div><div class="client-profile-stat money"><span class="client-stat-icon green"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M8 15h.01"/></svg></span><strong>${money.format(client.total)} lei</strong><small>Total cheltuit</small></div></section><section class="client-profile-section"><div class="client-profile-section-head"><h3>Următoarea programare</h3>${nextVisit ? `<button type="button" data-client-appointment="${nextVisit.id}">Vezi detalii</button>` : ""}</div>${nextHtml}</section><section class="client-profile-section history-section"><div class="client-profile-section-head"><h3>Istoric programări</h3><span>${historyVisits.length}</span></div>${historyHtml}</section></article>`;
+  els.clientListInner.innerHTML = `<article class="client-profile-page"><header class="client-profile-header"><button type="button" class="client-profile-back" data-client-back aria-label="Înapoi la lista de cliente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><span>Profil clientă</span></header><section class="client-profile-hero"><div class="client-avatar" aria-hidden="true">${escapeHtml(initials)}</div><div class="client-profile-identity"><h2>${escapeHtml(client.name)}</h2><p>${client.visits.length} ${client.visits.length === 1 ? "vizită înregistrată" : "vizite înregistrate"}</p></div></section><button type="button" class="client-primary-action" data-profile-reschedule="${escapeHtml(client.name)}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg><span>Programare nouă</span></button><section class="client-profile-stats" aria-label="Rezumat clientă"><div class="client-profile-stat"><span class="client-stat-icon purple"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></span><strong>${client.visits.length}</strong><small>Programări</small></div><div class="client-profile-stat money"><span class="client-stat-icon green"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18M8 15h.01"/></svg></span><strong>${money.format(client.total)} lei</strong><small>Total cheltuit</small></div>${leadTimeHtml}</section><section class="client-profile-section"><div class="client-profile-section-head"><h3>Următoarea programare</h3>${nextVisit ? `<button type="button" data-client-appointment="${nextVisit.id}">Vezi detalii</button>` : ""}</div>${nextHtml}</section><section class="client-profile-section history-section"><div class="client-profile-section-head"><h3>Istoric programări</h3><span>${historyVisits.length}</span></div>${historyHtml}</section></article>`;
 
   const profile = els.clientListInner.querySelector(".client-profile-page");
   if (profile) enableClientProfileSwipe(profile);
@@ -1091,6 +1167,14 @@ function renderNewClientsChart() {
   return `<section class="stats-panel"><div class="stats-section-heading"><h3>Cliente noi pe luni</h3><span>Ultimele 6 luni</span></div>${statsBarChart(series.map(item => ({ label: item.label, value: item.count, isCurrent: item.isCurrent })), { ariaLabel: "Cliente noi în ultimele 6 luni" })}</section>`;
 }
 
+function renderBookingLeadStatsCard() {
+  const leadStats = bookingLeadStats();
+  if (!leadStats) {
+    return `<section class="stats-panel stats-lead-panel"><div class="stats-section-heading"><h3>Anticiparea programărilor</h3></div><p class="stats-empty-copy">Statistica va deveni disponibilă după înregistrarea programărilor noi.</p></section>`;
+  }
+  return `<section class="stats-panel stats-lead-panel"><div class="stats-section-heading"><div><h3>Anticiparea programărilor</h3><span>Cât de devreme se fac programările</span></div><span>${leadStats.count} eligibile</span></div><div class="stats-lead-summary"><div><small>Media</small><strong>${formatLeadDays(leadStats.average)} zile</strong></div><div><small>Mediana</small><strong>${formatLeadDays(leadStats.median)} zile</strong></div></div><div class="stats-lead-distribution" aria-label="Distribuția anticipării programărilor">${leadStats.buckets.map(bucket => `<div class="stats-lead-row"><div><span>${bucket.label}</span><b>${bucket.count}</b></div><div class="stats-lead-track"><span style="width:${bucket.count ? Math.max(4, bucket.percent) : 0}%"></span></div><small>${bucket.percent}%</small></div>`).join("")}</div><p class="stats-lead-note">Calculat din programările cu momentul introducerii disponibil. Istoricul importat inițial nu este inclus.</p></section>`;
+}
+
 function renderClientsStatsSection() {
   const top = topClientsBySpend(5);
   const newCount = newClientsThisMonth();
@@ -1107,7 +1191,7 @@ function renderClientsStatsSection() {
     : `${retention.retained} din ${retention.base} cliente active în luna anterioară au revenit în ${retention.month.toLowerCase()}.`;
   const retentionPeriod = retention ? `${retention.month} ${retention.year}` : "Perioadă indisponibilă";
 
-  return `<section class="stats-summary-strip two stats-client-overview"><div><small>Cliente unice</small><strong class="accent">${totalClients}</strong></div><div><small>Programări totale</small><strong>${totalAppointments}</strong></div></section><section class="stats-metric-hero retention-hero"><span class="stats-period-label">Rata de retenție · ${escapeHtml(retentionPeriod)}</span><strong class="stats-primary-rate">${!retention || retention.value === null ? "—" : `${retention.value}%`}</strong><small>${escapeHtml(retentionExplanation)}</small></section><section class="stats-panel stats-retention-panel">${retentionLineChart(retentionSeries, activeRetentionIndex)}</section><section class="stats-highlight-card"><div><small>Cliente noi</small><strong>${newCount}</strong><span>în ${MONTHS_RO[new Date().getMonth()].toLowerCase()} ${new Date().getFullYear()}</span></div><div class="stats-highlight-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 20v-1.5a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6"/></svg></div></section>${renderNewClientsChart()}<section class="stats-panel"><div class="stats-section-heading"><h3>Top 5 cliente după încasări</h3><span>${top.length}</span></div>${top.length ? `<ol class="stats-ranking-list">${top.map((client, index) => `<li><span class="stats-rank-number">${index + 1}</span><span><strong>${escapeHtml(client.name)}</strong><small>${client.visits.length} ${client.visits.length === 1 ? "vizită" : "vizite"}</small></span><b>${formatStatsMoney(client.total)}</b></li>`).join("")}</ol>` : `<p class="stats-empty-copy">Nicio clientă înregistrată încă.</p>`}</section>`;
+  return `<section class="stats-summary-strip two stats-client-overview"><div><small>Cliente unice</small><strong class="accent">${totalClients}</strong></div><div><small>Programări totale</small><strong>${totalAppointments}</strong></div></section><section class="stats-metric-hero retention-hero"><span class="stats-period-label">Rata de retenție · ${escapeHtml(retentionPeriod)}</span><strong class="stats-primary-rate">${!retention || retention.value === null ? "—" : `${retention.value}%`}</strong><small>${escapeHtml(retentionExplanation)}</small></section><section class="stats-panel stats-retention-panel">${retentionLineChart(retentionSeries, activeRetentionIndex)}</section><section class="stats-highlight-card"><div><small>Cliente noi</small><strong>${newCount}</strong><span>în ${MONTHS_RO[new Date().getMonth()].toLowerCase()} ${new Date().getFullYear()}</span></div><div class="stats-highlight-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 20v-1.5a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6"/></svg></div></section>${renderNewClientsChart()}${renderBookingLeadStatsCard()}<section class="stats-panel"><div class="stats-section-heading"><h3>Top 5 cliente după încasări</h3><span>${top.length}</span></div>${top.length ? `<ol class="stats-ranking-list">${top.map((client, index) => `<li><span class="stats-rank-number">${index + 1}</span><span><strong>${escapeHtml(client.name)}</strong><small>${client.visits.length} ${client.visits.length === 1 ? "vizită" : "vizite"}</small></span><b>${formatStatsMoney(client.total)}</b></li>`).join("")}</ol>` : `<p class="stats-empty-copy">Nicio clientă înregistrată încă.</p>`}</section>`;
 }
 
 function renderServicesStatsSection() {
