@@ -815,6 +815,7 @@ function renderClients() {
 }
 
 let statsSubTab = "revenue";
+let selectedRetentionIndex = null;
 
 function formatStatsMoney(value) {
   return `${new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 0 }).format(Number(value) || 0)} lei`;
@@ -833,6 +834,10 @@ function retentionByMonth(monthsBack = 6) {
     const retained = previousClients.filter(client => client.visits.some(visit => visit.date.startsWith(currentPrefix)));
     series.push({
       label: MONTHS_RO[current.getMonth()].slice(0, 3),
+      month: MONTHS_RO[current.getMonth()],
+      year: current.getFullYear(),
+      retained: retained.length,
+      base: previousClients.length,
       value: previousClients.length ? Math.round((retained.length / previousClients.length) * 100) : null,
       isCurrent: i === 0
     });
@@ -861,12 +866,13 @@ function statsBarChart(items, options = {}) {
   }).join("")}</div>`;
 }
 
-function retentionLineChart(series) {
+function retentionLineChart(series, selectedIndex) {
   const values = series.map(item => item.value).filter(value => value !== null);
   if (values.length === 0) return `<div class="stats-chart-empty">Nu există suficiente date pentru evoluția retenției.</div>`;
   const maxScale = Math.max(10, Math.ceil(Math.max(...values) / 10) * 10);
   const points = series.map((item, index) => ({
     ...item,
+    index,
     x: series.length === 1 ? 150 : 24 + (index * 252 / (series.length - 1)),
     y: item.value === null ? null : 88 - ((item.value / maxScale) * 64)
   }));
@@ -877,7 +883,7 @@ function retentionLineChart(series) {
     path += `${drawing ? " L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`;
     drawing = true;
   }
-  return `<div class="stats-line-chart"><svg viewBox="0 0 300 118" role="img" aria-label="Evoluția retenției în ultimele 6 luni"><line x1="24" y1="24" x2="276" y2="24"/><line x1="24" y1="56" x2="276" y2="56"/><line x1="24" y1="88" x2="276" y2="88"/><text x="2" y="27">${maxScale}%</text><text x="7" y="59">${Math.round(maxScale / 2)}%</text><text x="12" y="91">0%</text><path class="stats-line-path" d="${path}"/>${points.map(point => `${point.y === null ? "" : `<text class="stats-line-value" x="${point.x}" y="${Math.max(11, point.y - 8)}" text-anchor="middle">${point.value}%</text><circle class="${point.isCurrent ? "current" : ""}" cx="${point.x}" cy="${point.y}" r="${point.isCurrent ? 4 : 3}"><title>${escapeHtml(point.label)}: ${point.value}%</title></circle>`}<text class="stats-line-label" x="${point.x}" y="110" text-anchor="middle">${escapeHtml(point.label)}</text>`).join("")}</svg></div>`;
+  return `<div class="stats-line-chart"><svg viewBox="0 0 300 118" role="img" aria-label="Evoluția retenției în ultimele 6 luni"><line x1="24" y1="24" x2="276" y2="24"/><line x1="24" y1="56" x2="276" y2="56"/><line x1="24" y1="88" x2="276" y2="88"/><text x="2" y="27">${maxScale}%</text><text x="7" y="59">${Math.round(maxScale / 2)}%</text><text x="12" y="91">0%</text><path class="stats-line-path" d="${path}"/>${points.map(point => `${point.y === null ? "" : `<g class="stats-line-point ${point.index === selectedIndex ? "selected" : ""}" data-retention-index="${point.index}" tabindex="0" role="button" aria-pressed="${point.index === selectedIndex}" aria-label="${escapeHtml(`${point.month} ${point.year}: retenție ${point.value}%`)}"><circle class="stats-line-hit" cx="${point.x}" cy="${point.y}" r="14"/><text class="stats-line-value" x="${point.x}" y="${Math.max(11, point.y - 8)}" text-anchor="middle">${point.value}%</text><circle class="stats-line-marker ${point.isCurrent ? "current" : ""}" cx="${point.x}" cy="${point.y}" r="${point.isCurrent || point.index === selectedIndex ? 4 : 3}"><title>${escapeHtml(`${point.month} ${point.year}: ${point.value}%`)}</title></circle></g>`}<text class="stats-line-label" x="${point.x}" y="110" text-anchor="middle">${escapeHtml(point.label)}</text>`).join("")}</svg></div>`;
 }
 
 function renderStats() {
@@ -889,6 +895,18 @@ function renderStats() {
   els.statsWrap.innerHTML = `<div class="stats-sticky-header"><div class="stats-page-header"><div><span>Analiză salon</span><h2>Statistici</h2></div><div class="stats-page-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></div></div>${subTabsHtml}</div><div class="stats-page-content">${content}</div>`;
   els.statsWrap.querySelectorAll("[data-substat]").forEach(button => {
     button.addEventListener("click", () => { statsSubTab = button.dataset.substat; renderStats(); });
+  });
+  els.statsWrap.querySelectorAll("[data-retention-index]").forEach(point => {
+    const selectPeriod = () => {
+      selectedRetentionIndex = Number(point.dataset.retentionIndex);
+      renderStats();
+    };
+    point.addEventListener("click", selectPeriod);
+    point.addEventListener("keydown", event => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      selectPeriod();
+    });
   });
   const scrollEl = document.getElementById("weekChartScroll");
   if (scrollEl) scrollEl.scrollLeft = scrollEl.scrollWidth;
@@ -939,18 +957,22 @@ function renderNewClientsChart() {
 }
 
 function renderClientsStatsSection() {
-  const now = new Date();
   const top = topClientsBySpend(5);
   const newCount = newClientsThisMonth();
-  const retention = retentionRate();
   const retentionSeries = retentionByMonth(6);
+  const defaultRetentionIndex = Math.max(0, retentionSeries.length - 1);
+  const activeRetentionIndex = Number.isInteger(selectedRetentionIndex) && selectedRetentionIndex >= 0 && selectedRetentionIndex < retentionSeries.length
+    ? selectedRetentionIndex
+    : defaultRetentionIndex;
+  const retention = retentionSeries[activeRetentionIndex];
   const totalClients = clientsList().length;
   const totalAppointments = appointments.length;
-  const retentionExplanation = retention === null
-    ? "Nu sunt suficiente date din luna trecută pentru a calcula retenția."
-    : `${retention.retained} din ${retention.base} cliente active luna trecută au revenit și luna aceasta.`;
+  const retentionExplanation = !retention || retention.base === 0
+    ? "Nu sunt suficiente date din luna anterioară pentru a calcula retenția."
+    : `${retention.retained} din ${retention.base} cliente active în luna anterioară au revenit în ${retention.month.toLowerCase()}.`;
+  const retentionPeriod = retention ? `${retention.month} ${retention.year}` : "Perioadă indisponibilă";
 
-  return `<section class="stats-summary-strip two stats-client-overview"><div><small>Cliente unice</small><strong class="accent">${totalClients}</strong></div><div><small>Programări totale</small><strong>${totalAppointments}</strong></div></section><section class="stats-metric-hero retention-hero"><span class="stats-period-label">Rata de retenție · ${MONTHS_RO[now.getMonth()]} ${now.getFullYear()}</span><strong class="stats-primary-rate">${retention === null ? "—" : `${retention.pct}%`}</strong><small>${escapeHtml(retentionExplanation)}</small></section><section class="stats-panel stats-retention-panel">${retentionLineChart(retentionSeries)}</section><section class="stats-highlight-card"><div><small>Cliente noi</small><strong>${newCount}</strong><span>în ${MONTHS_RO[now.getMonth()].toLowerCase()} ${now.getFullYear()}</span></div><div class="stats-highlight-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 20v-1.5a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6"/></svg></div></section>${renderNewClientsChart()}<section class="stats-panel"><div class="stats-section-heading"><h3>Top 5 cliente după încasări</h3><span>${top.length}</span></div>${top.length ? `<ol class="stats-ranking-list">${top.map((client, index) => `<li><span class="stats-rank-number">${index + 1}</span><span><strong>${escapeHtml(client.name)}</strong><small>${client.visits.length} ${client.visits.length === 1 ? "vizită" : "vizite"}</small></span><b>${formatStatsMoney(client.total)}</b></li>`).join("")}</ol>` : `<p class="stats-empty-copy">Nicio clientă înregistrată încă.</p>`}</section>`;
+  return `<section class="stats-summary-strip two stats-client-overview"><div><small>Cliente unice</small><strong class="accent">${totalClients}</strong></div><div><small>Programări totale</small><strong>${totalAppointments}</strong></div></section><section class="stats-metric-hero retention-hero"><span class="stats-period-label">Rata de retenție · ${escapeHtml(retentionPeriod)}</span><strong class="stats-primary-rate">${!retention || retention.value === null ? "—" : `${retention.value}%`}</strong><small>${escapeHtml(retentionExplanation)}</small></section><section class="stats-panel stats-retention-panel">${retentionLineChart(retentionSeries, activeRetentionIndex)}</section><section class="stats-highlight-card"><div><small>Cliente noi</small><strong>${newCount}</strong><span>în ${MONTHS_RO[new Date().getMonth()].toLowerCase()} ${new Date().getFullYear()}</span></div><div class="stats-highlight-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 20v-1.5a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6"/></svg></div></section>${renderNewClientsChart()}<section class="stats-panel"><div class="stats-section-heading"><h3>Top 5 cliente după încasări</h3><span>${top.length}</span></div>${top.length ? `<ol class="stats-ranking-list">${top.map((client, index) => `<li><span class="stats-rank-number">${index + 1}</span><span><strong>${escapeHtml(client.name)}</strong><small>${client.visits.length} ${client.visits.length === 1 ? "vizită" : "vizite"}</small></span><b>${formatStatsMoney(client.total)}</b></li>`).join("")}</ol>` : `<p class="stats-empty-copy">Nicio clientă înregistrată încă.</p>`}</section>`;
 }
 
 function renderServicesStatsSection() {

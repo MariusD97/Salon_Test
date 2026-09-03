@@ -1550,10 +1550,15 @@ body.stats-view-open { padding-top: 0; }
 .stats-line-chart line { stroke: rgba(122, 112, 143, 0.17); stroke-width: 1; }
 .stats-line-chart text { fill: #756E80; font-family: 'Inter', sans-serif; font-size: 8px; }
 .stats-line-path { fill: none; stroke: #8F7CFF; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.stats-line-chart circle { fill: #14131C; stroke: #8F7CFF; stroke-width: 2; }
-.stats-line-chart circle.current { fill: #F5F3F9; stroke-width: 2.5; }
-.stats-line-value { fill: #B9AEFF !important; font-size: 7.5px !important; font-weight: 700; }
-.stats-line-label { text-transform: capitalize; }
+.stats-line-marker { fill: #14131C; stroke: #8F7CFF; stroke-width: 2; transition: fill 0.16s ease, stroke 0.16s ease; }
+.stats-line-marker.current { fill: #F5F3F9; stroke-width: 2.5; }
+.stats-line-hit { fill: transparent; stroke: transparent; stroke-width: 2; }
+.stats-line-point { cursor: pointer; outline: none; }
+.stats-line-point.selected .stats-line-marker { fill: #8F7CFF; stroke: #F5F3F9; stroke-width: 2.5; }
+.stats-line-point.selected .stats-line-value { fill: #F5F3F9 !important; font-size: 8.5px !important; }
+.stats-line-point:focus-visible .stats-line-hit { stroke: rgba(143, 124, 255, 0.7); }
+.stats-line-value { fill: #B9AEFF !important; font-size: 7.5px !important; font-weight: 700; pointer-events: none; }
+.stats-line-label { text-transform: capitalize; pointer-events: none; }
 .stats-chart-empty { min-height: 120px; display: grid; place-items: center; color: #817A8E; font-size: 11px; text-align: center; }
 
 .stats-highlight-card {
