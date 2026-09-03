@@ -912,12 +912,12 @@ function renderClientProfile(client) {
   const money = new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 0 });
   const initials = clientInitials(client.name);
   const leadStats = bookingLeadStats(client.visits);
-  let leadTimeHtml = `<div class="client-profile-stat lead-time"><span class="client-stat-icon lead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><strong>—</strong><small>Anticiparea va apărea la următoarea programare eligibilă</small></div>`;
+  let leadTimeHtml = `<div class="client-profile-stat lead-time"><span class="client-stat-icon lead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><small class="lead-label">Se programează în medie cu</small><strong>—</strong><small class="lead-count">Nu sunt încă date eligibile</small></div>`;
   if (leadStats?.count === 1) {
     const days = leadStats.values[0];
-    leadTimeHtml = `<div class="client-profile-stat lead-time"><span class="client-stat-icon lead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><strong>${days} ${days === 1 ? "zi" : "zile"} înainte</strong><small>Anticiparea ultimei programări eligibile</small></div>`;
+    leadTimeHtml = `<div class="client-profile-stat lead-time"><span class="client-stat-icon lead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><small class="lead-label">Ultima programare a fost făcută cu</small><strong>${days} ${days === 1 ? "zi" : "zile"} înainte</strong><small class="lead-count">1 programare eligibilă</small></div>`;
   } else if (leadStats) {
-    leadTimeHtml = `<div class="client-profile-stat lead-time"><span class="client-stat-icon lead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><strong>${formatLeadDays(leadStats.average)} zile înainte</strong><small>Se programează în medie · ${leadStats.count} programări eligibile</small></div>`;
+    leadTimeHtml = `<div class="client-profile-stat lead-time"><span class="client-stat-icon lead"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg></span><small class="lead-label">Se programează în medie cu</small><strong>${formatLeadDays(leadStats.average)} zile înainte</strong><small class="lead-count">${leadStats.count} programări eligibile</small></div>`;
   }
 
   const nextHtml = nextVisit
@@ -1172,7 +1172,7 @@ function renderBookingLeadStatsCard() {
   if (!leadStats) {
     return `<section class="stats-panel stats-lead-panel"><div class="stats-section-heading"><h3>Anticiparea programărilor</h3></div><p class="stats-empty-copy">Statistica va deveni disponibilă după înregistrarea programărilor noi.</p></section>`;
   }
-  return `<section class="stats-panel stats-lead-panel"><div class="stats-section-heading"><div><h3>Anticiparea programărilor</h3><span>Cât de devreme se fac programările</span></div><span>${leadStats.count} eligibile</span></div><div class="stats-lead-summary"><div><small>Media</small><strong>${formatLeadDays(leadStats.average)} zile</strong></div><div><small>Mediana</small><strong>${formatLeadDays(leadStats.median)} zile</strong></div></div><div class="stats-lead-distribution" aria-label="Distribuția anticipării programărilor">${leadStats.buckets.map(bucket => `<div class="stats-lead-row"><div><span>${bucket.label}</span><b>${bucket.count}</b></div><div class="stats-lead-track"><span style="width:${bucket.count ? Math.max(4, bucket.percent) : 0}%"></span></div><small>${bucket.percent}%</small></div>`).join("")}</div><p class="stats-lead-note">Calculat din programările cu momentul introducerii disponibil. Istoricul importat inițial nu este inclus.</p></section>`;
+  return `<section class="stats-panel stats-lead-panel"><div class="stats-section-heading"><div><h3>Anticiparea programărilor</h3><span>Cât de devreme se fac programările</span></div><span>${leadStats.count} eligibile</span></div><div class="stats-lead-summary"><div><small>Media</small><strong>${formatLeadDays(leadStats.average)} zile</strong></div><div><small>Mediana</small><strong>${formatLeadDays(leadStats.median)} zile</strong></div></div><div class="stats-lead-distribution" aria-label="Distribuția anticipării programărilor">${leadStats.buckets.map(bucket => `<div class="stats-lead-row"><div><span>${bucket.label}</span><b>${bucket.count}</b></div><div class="stats-lead-track"><span style="width:${bucket.count ? Math.max(4, bucket.percent) : 0}%"></span></div><small>${bucket.percent}%</small></div>`).join("")}</div></section>`;
 }
 
 function renderClientsStatsSection() {
