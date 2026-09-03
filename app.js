@@ -534,12 +534,22 @@ function renderDayCard() {
     bodyHtml = `<p class="no-appts">Nicio programare în această zi.</p>`;
   } else {
     const firstVisitIds = firstVisitIdsSet();
-    bodyHtml = `<ul class="appt-list">${list.map(a => `<li class="appt-item swipe-item"><div class="swipe-content appt-swipe-content"><div class="appt-time">${a.time}–${minutesToTime(timeToMinutes(a.time) + Number(a.duration))}</div><div><div class="appt-client">${escapeHtml(a.client)}${firstVisitIds.has(a.id) ? ` <span class="new-badge">Nouă</span>` : ""}</div>${a.service ? `<div class="appt-service">${escapeHtml(a.service)}</div>` : ""}${a.notes ? `<div class="appt-notes">${escapeHtml(a.notes)}</div>` : ""}</div><div class="appt-cost">${Number(a.cost).toFixed(0)} lei</div></div><div class="swipe-actions"><button class="icon-btn" data-edit="${a.id}" aria-label="Editează"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" data-del="${a.id}" aria-label="Șterge"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`).join("")}</ul>`;
+    const todayKey = todayDateKey();
+    const isToday = selectedDate === todayKey;
+    const now = new Date();
+    const nowMinutes = now.getHours() * 60 + now.getMinutes();
+    const nextAppointment = isToday ? list.find(appointment => timeToMinutes(appointment.time) + Number(appointment.duration || 0) > nowMinutes) : null;
+    bodyHtml = `<ol class="agenda-list">${list.map(appointment => {
+      const end = timeToMinutes(appointment.time) + Number(appointment.duration || 0);
+      const isPast = isToday && end <= nowMinutes;
+      const isNext = nextAppointment && nextAppointment.id === appointment.id;
+      return `<li class="agenda-row swipe-item ${isPast ? "past" : ""} ${isNext ? "next" : ""}"><div class="agenda-time"><strong>${appointment.time}</strong><span>${minutesToTime(end)}</span></div><div class="agenda-timeline"><span class="tl-dot"></span></div><div class="agenda-appointment"><button class="agenda-appointment-main" type="button" data-calendar-edit="${appointment.id}"><span class="agenda-client-line"><strong>${escapeHtml(appointment.client)}</strong><span class="agenda-cost">${Number(appointment.cost).toFixed(0)} lei</span></span><span class="agenda-service">${escapeHtml(appointment.service || "Serviciu personalizat")} · ${durationLabel(appointment.duration)}</span>${appointment.notes ? `<span class="agenda-notes">${escapeHtml(appointment.notes)}</span>` : ""}${firstVisitIds.has(appointment.id) ? `<span class="agenda-new-client">Clientă nouă</span>` : ""}</button></div><div class="swipe-actions"><button class="icon-btn" type="button" data-calendar-edit="${appointment.id}" aria-label="Editează programarea"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="icon-btn danger" type="button" data-calendar-delete="${appointment.id}" aria-label="Șterge programarea"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></div></li>`;
+    }).join("")}</ol>`;
   }
   els.dayCard.innerHTML = `<div class="day-card-header"><div><h2 class="day-card-title">${label}</h2><p>${list.length} ${list.length === 1 ? "programare" : "programări"} · ${formatStatsMoney(revenue)}</p></div></div>${bodyHtml}`;
   if (!isEditingHere) {
-    els.dayCard.querySelectorAll("[data-edit]").forEach(b => b.addEventListener("click", () => { editingId = b.dataset.edit; editingSurface = "calendar"; formDate = selectedDate; renderDayCard(); }));
-    els.dayCard.querySelectorAll("[data-del]").forEach(b => b.addEventListener("click", () => showConfirm(b.dataset.del)));
+    els.dayCard.querySelectorAll("[data-calendar-edit]").forEach(button => button.addEventListener("click", () => { editingId = button.dataset.calendarEdit; editingSurface = "calendar"; formDate = selectedDate; renderDayCard(); }));
+    els.dayCard.querySelectorAll("[data-calendar-delete]").forEach(button => button.addEventListener("click", () => showConfirm(button.dataset.calendarDelete)));
   } else {
     wireForm(() => { editingId = null; editingSurface = null; formDate = null; renderDayCard(); });
   }

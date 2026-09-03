@@ -2288,32 +2288,24 @@ body.calendar-view-open { padding-top: 0; }
 .calendar-intensity-legend b { color: #A9A2B3; font-weight: 600; }
 .calendar-intensity-legend .swatch { flex: 0 0 auto; }
 
-.calendar-day-panel .day-card-header { margin-bottom: 10px; }
+.calendar-day-panel {
+  padding: 0 !important;
+  overflow: visible !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+.calendar-day-panel .day-card-header { margin-bottom: 10px; padding: 0 2px; }
 .calendar-day-panel .day-card-header h2 { color: #F1EEF5; font-size: 17px; }
 .calendar-day-panel .day-card-header p { margin-top: 4px; color: #817A8E; font-size: 10px; line-height: 1.4; }
-.calendar-day-panel .no-appts { padding: 24px 4px; color: #817A8E; font-size: 11px; text-align: center; }
-.calendar-day-panel .appt-list { gap: 0; overflow: hidden; border: 1px solid #272431; border-radius: 12px; background: #171620; }
-.calendar-day-panel .appt-item { min-height: 64px; padding: 0; border: 0; border-radius: 0; background: transparent; }
-.calendar-day-panel .appt-item + .appt-item { border-top: 1px solid #272431; }
-.calendar-day-panel .appt-swipe-content {
-  min-height: 64px;
-  grid-template-columns: auto minmax(0, 1fr) minmax(64px, auto);
-  padding: 11px 12px;
-  background: #171620;
-}
-.calendar-day-panel .appt-time { color: #9B8BFF; font-size: 10.5px; }
-.calendar-day-panel .appt-client { color: #DED9E5; font-size: 12.5px; }
-.calendar-day-panel .appt-service { color: #817A8E; font-size: 10px; }
-.calendar-day-panel .appt-notes { color: #716A7B; font-size: 9.5px; }
-.calendar-day-panel .appt-cost {
-  min-width: 64px;
-  justify-self: end;
-  color: #35D6A0;
+.calendar-day-panel .no-appts {
+  padding: 24px 4px;
+  border: 1px solid #272431;
+  border-radius: 12px;
+  background: #14131C;
+  color: #817A8E;
   font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
+  text-align: center;
 }
-.calendar-day-panel .new-badge { margin-left: 3px; padding: 2px 5px; border-radius: 5px; background: rgba(143, 124, 255, 0.08); color: #9B8BFF; font-size: 8px; }
 
 @media (max-width: 350px) {
   .calendar-summary-column { min-height: 150px; padding-left: 11px; padding-right: 11px; }
