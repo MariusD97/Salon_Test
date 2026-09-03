@@ -121,29 +121,6 @@
   }
   .nav-add-btn svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 
-  .calendar-view-switch {
-    width: min(100%, 360px);
-    margin: 0 auto 22px;
-    padding: 3px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    background: #17151F;
-    border: 1px solid #2A2735;
-    border-radius: 8px;
-  }
-  .calendar-view-btn {
-    min-height: 36px;
-    background: transparent;
-    border: 0;
-    border-radius: 6px;
-    color: #8B84A0;
-    font-size: 13px;
-    font-weight: 600;
-  }
-  .calendar-view-btn.active { background: #8B7CF6; color: #0B0A12; }
-  .calendar-view-btn:focus-visible { outline: 2px solid #F5F3F9; outline-offset: -3px; }
-
-  .today-wrap { max-width: 760px; margin: 0 auto; }
   .agenda-header { padding: 2px 0 18px; border-bottom: 1px solid #2A2735; margin-bottom: 18px; }
   .agenda-date-nav { display: grid; grid-template-columns: 32px minmax(0, 1fr) 32px; align-items: center; gap: 12px; }
   .agenda-date-copy { min-width: 0; text-align: center; }
@@ -186,9 +163,6 @@
   .agenda-new-client { color: #8B7CF6; font-size: 10.5px; font-weight: 700; margin-top: 2px; }
   .agenda-actions { padding: 10px 10px 10px 0; display: flex; gap: 6px; }
 
-  .agenda-empty { padding: 44px 16px 28px; text-align: center; color: #8B84A0; }
-  .agenda-empty h3 { color: #F5F3F9; font-family: 'Fraunces', serif; font-size: 19px; font-weight: 600; }
-  .agenda-empty p { margin: 5px 0 18px; font-size: 13px; }
   .next-appointment {
     width: 100%; background: #17151F; border: 1px solid #2A2735; border-radius: 8px;
     color: #F5F3F9; padding: 13px 14px; display: flex; flex-direction: column; align-items: flex-start;
@@ -205,8 +179,6 @@
   .agenda-form-date { color: #A79FBD; font-size: 12px; }
 
   @media (max-width: 520px) {
-    .calendar-view-switch { margin-bottom: 18px; }
-    .agenda-empty { padding-top: 20px; }
     .agenda-date-copy h2 { font-size: 19px; }
     .agenda-row { grid-template-columns: 42px 14px minmax(0, 1fr); gap: 6px; }
     .agenda-appointment { grid-template-columns: minmax(0, 1fr); }
@@ -316,9 +288,6 @@
   .save-btn { background: #8B7CF6; color: #0B0A12; border: none; border-radius: 8px; padding: 9px 18px; font-weight: 600; font-size: 13.5px; }
 
   .clients-wrap { max-width: 920px; margin: 0 auto; }
-  .client-search { width: 100%; background: #17151F; border: 1px solid #2A2735; color: #F5F3F9; border-radius: 10px; padding: 11px 14px; font-size: 16px; margin-bottom: 14px; }
-  .client-search::placeholder { color: #8B84A0; }
-  .client-search:focus { outline: none; border-color: #8B7CF6; }
   .client-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
   .client-card { background: #17151F; border: 1px solid #2A2735; border-radius: 14px; overflow: hidden; }
   .client-row {
@@ -342,7 +311,6 @@
   #view-calendar.active, #view-clients.active, #view-stats.active { display: block; animation: viewFadeIn 0.22s ease; }
   @keyframes viewFadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-  .stats-wrap { max-width: 920px; margin: 0 auto; display: flex; flex-direction: column; gap: 18px; }
   .stats-subtabs { display: flex; gap: 8px; margin-bottom: -6px; }
   .subtab-btn { background: transparent; border: 1px solid #2A2735; color: #A79FBD; border-radius: 999px; padding: 6px 14px; font-size: 12.5px; font-weight: 600; flex: 1; }
   .subtab-btn.active { background: #8B7CF61F; color: #8B7CF6; border-color: #8B7CF6; }
@@ -1231,6 +1199,8 @@ body.stats-view-open { padding-top: 0; }
 .stats-wrap {
   width: min(100%, 620px);
   max-width: 620px;
+  display: flex;
+  flex-direction: column;
   margin: 0 auto;
   gap: 0;
 }
@@ -1595,6 +1565,93 @@ body.stats-view-open { padding-top: 0; }
   padding: 0 2px;
 }
 .stats-services-toolbar > span { color: #C7C1D1; font-size: 12px; font-weight: 600; }
+.service-prices-open {
+  width: 40px;
+  height: 40px;
+  flex: 0 0 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #292635;
+  border-radius: 10px;
+  background: #15141D;
+  color: #8F7CFF;
+}
+.service-prices-open:hover { background: #1B1925; color: #B9AEFF; }
+.service-prices-open:focus-visible { outline: 2px solid #8F7CFF; outline-offset: 2px; }
+.service-prices-open svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+.service-prices-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 24px 20px 0;
+}
+.service-prices-backdrop { position: absolute; inset: 0; background: rgba(3, 3, 7, 0.78); backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); animation: appointmentBackdropIn 0.2s ease both; }
+.service-prices-sheet {
+  position: relative;
+  width: min(100%, 560px);
+  max-height: min(88dvh, 760px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid #302C40;
+  border-bottom: 0;
+  border-radius: 20px 20px 0 0;
+  background: #0F0E16;
+  box-shadow: 0 -18px 48px rgba(0, 0, 0, 0.38);
+  animation: appointmentSheetIn 0.26s cubic-bezier(0.22, 0.8, 0.28, 1) both;
+}
+.service-prices-header { flex: 0 0 auto; display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 16px 22px 18px; }
+.service-prices-header span { display: block; margin-bottom: 3px; color: #8F7CFF; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+.service-prices-header h2 { color: #F7F5FB; font-family: 'Fraunces', serif; font-size: 24px; line-height: 1.16; font-weight: 600; letter-spacing: 0; }
+.service-prices-header p { margin-top: 5px; color: #8F899F; font-size: 11.5px; line-height: 1.4; }
+.service-prices-body { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; touch-action: pan-y; padding: 0 22px 18px; }
+.service-price-row {
+  min-width: 0;
+  min-height: 66px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 104px;
+  align-items: center;
+  gap: 14px;
+  border-top: 1px solid #292635;
+}
+.service-price-row:first-child { border-top: 0; }
+.service-price-row > span:first-child { overflow-wrap: anywhere; color: #DCD7E4; font-size: 12px; line-height: 1.4; font-weight: 600; }
+.service-price-input { min-height: 42px; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid #302C40; border-radius: 10px; background: #171620; }
+.service-price-input:focus-within { border-color: rgba(143, 124, 255, 0.72); }
+.service-price-input input { width: 100%; min-width: 0; padding: 0; border: 0; outline: 0; background: transparent; color: #35D6A0; font-size: 15px; font-weight: 700; text-align: right; }
+.service-price-input b { color: #817A8E; font-size: 10px; font-weight: 600; }
+#servicePricesError:empty { display: none; }
+#servicePricesError { margin-top: 10px; }
+.service-prices-footer { flex: 0 0 auto; padding: 12px 22px calc(14px + env(safe-area-inset-bottom)); border-top: 1px solid rgba(42, 39, 53, 0.82); background: #0F0E16; }
+.service-prices-save { width: 100%; min-height: 52px; border: 0; border-radius: 14px; background: #8F7CFF; color: #0B0911; font-size: 14px; font-weight: 700; }
+.service-prices-save:hover { background: #9B8BFF; }
+.service-prices-save:focus-visible { outline: 2px solid #F5F3F9; outline-offset: 2px; }
+.service-prices-save:disabled { opacity: 0.58; cursor: wait; }
+
+@media (min-width: 700px) {
+  .service-prices-modal { padding-bottom: 24px; }
+  .service-prices-sheet { border-bottom: 1px solid #302C40; border-radius: 20px; }
+}
+
+@media (max-width: 420px) {
+  .service-prices-modal { padding: 10px 0 0; }
+  .service-prices-sheet { width: 100%; border-left: 0; border-right: 0; border-radius: 18px 18px 0 0; }
+  .service-prices-header { padding: 14px 16px 16px; }
+  .service-prices-body { padding: 0 16px 14px; }
+  .service-prices-footer { padding: 10px 16px calc(11px + env(safe-area-inset-bottom)); }
+  .service-price-row { grid-template-columns: minmax(0, 1fr) 96px; gap: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .service-prices-backdrop,
+  .service-prices-sheet { animation: none; }
+}
+
 .stats-sort-control {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1999,6 +2056,7 @@ body.client-profile-open .clients-sticky-header { display: none; }
 .expense-submit-btn { width: 100%; min-height: 52px; border: 0; border-radius: 14px; background: #8F7CFF; color: #0B0911; font-size: 14px; font-weight: 700; }
 .expense-submit-btn:hover { background: #9B8BFF; }
 .expense-submit-btn:focus-visible { outline: 2px solid #F5F3F9; outline-offset: 2px; }
+.expense-submit-btn:disabled { opacity: 0.58; cursor: wait; }
 
 @media (max-width: 420px) {
   .expense-modal { padding: 10px 0 0; }
@@ -2226,8 +2284,10 @@ body.calendar-view-open { padding-top: 0; }
   border: 1px solid #272431;
   border-radius: 15px;
   background: #14131C;
+  color: #817A8E;
+  text-align: center;
 }
-.agenda-empty h3 { color: #EAE6EF; font-size: 18px; }
+.agenda-empty h3 { color: #EAE6EF; font-family: 'Fraunces', serif; font-size: 18px; font-weight: 600; }
 .agenda-empty p { margin: 5px 0 0; color: #817A8E; font-size: 11px; }
 .next-appointment {
   margin-top: 10px;

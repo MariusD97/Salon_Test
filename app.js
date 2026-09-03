@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
-  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot
+  getFirestore, collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -14,14 +14,17 @@ const firebaseConfig = {
 
 const MONTHS_RO = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
 const SERVICES = [
-  { name: "Manichiură cu oja semipermanentă / gel pe unghia naturală", price: 80 },
-  { name: "Întreținere gel mărimea 1-2", price: 100 },
-  { name: "Întreținere gel mărimea 3-4", price: 120 },
-  { name: "Construcție gel mărimea 1-2", price: 130 },
-  { name: "Construcție gel mărimea 3-4", price: 160 },
-  { name: "Demontat + curățat", price: 50 },
-  { name: "Personalizat", price: "" },
+  { id: "manichiura_semipermanenta", name: "Manichiură cu oja semipermanentă / gel pe unghia naturală", price: 80 },
+  { id: "intretinere_gel_1_2", name: "Întreținere gel mărimea 1-2", price: 100 },
+  { id: "intretinere_gel_3_4", name: "Întreținere gel mărimea 3-4", price: 120 },
+  { id: "constructie_gel_1_2", name: "Construcție gel mărimea 1-2", price: 130 },
+  { id: "constructie_gel_3_4", name: "Construcție gel mărimea 3-4", price: 160 },
+  { id: "demontat_curatat", name: "Demontat + curățat", price: 50 },
+  { id: "personalizat", name: "Personalizat", price: "" },
 ];
+const DEFAULT_SERVICE_PRICES = Object.freeze(Object.fromEntries(
+  SERVICES.filter(service => service.price !== "").map(service => [service.id, service.price])
+));
 
 function pad(n) { return n.toString().padStart(2, "0"); }
 function dateKey(y, m, d) { return `${y}-${pad(m + 1)}-${pad(d)}`; }
@@ -74,6 +77,7 @@ let expenses = [];
 let expFormOpen = false;
 let expYear = new Date().getFullYear();
 let expMonth = new Date().getMonth();
+let servicePricesOpen = false;
 
 const els = {
   errorBanner: document.getElementById("errorBanner"),
@@ -174,6 +178,18 @@ if (firebaseConfig.apiKey.startsWith("PASTE_")) {
       console.error(err);
       showError(true);
     });
+    onSnapshot(doc(db, "settings", "servicePrices"), async (snap) => {
+      if (!snap.exists()) {
+        const created = await saveServicePrices(DEFAULT_SERVICE_PRICES);
+        if (!created) showError(true);
+        return;
+      }
+      applyServicePrices(snap.data().prices || {});
+      renderAll();
+    }, (err) => {
+      console.error(err);
+      showError(true);
+    });
   } catch (e) {
     console.error(e);
     els.setupBanner.classList.add("show");
@@ -183,28 +199,80 @@ if (firebaseConfig.apiKey.startsWith("PASTE_")) {
 
 function showError(show) { els.errorBanner.classList.toggle("show", show); }
 
+function applyServicePrices(prices) {
+  SERVICES.forEach(service => {
+    if (service.price === "") return;
+    const configuredPrice = Number(prices[service.id]);
+    service.price = Number.isFinite(configuredPrice) && configuredPrice >= 0
+      ? configuredPrice
+      : DEFAULT_SERVICE_PRICES[service.id];
+  });
+}
+
+async function saveServicePrices(prices) {
+  if (!db) return false;
+  try {
+    await setDoc(doc(db, "settings", "servicePrices"), {
+      prices,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    showError(false);
+    return true;
+  } catch (error) {
+    console.error(error);
+    showError(true);
+    return false;
+  }
+}
+
 async function saveAppointment(data, id) {
-  if (!db) return;
+  if (!db) return false;
   try {
     if (id) await updateDoc(doc(db, "appointments", id), data);
     else await addDoc(collection(db, "appointments"), data);
     showError(false);
-  } catch (e) { console.error(e); showError(true); }
+    return true;
+  } catch (error) {
+    console.error(error);
+    showError(true);
+    return false;
+  }
 }
 async function removeAppointment(id) {
-  if (!db) return;
-  try { await deleteDoc(doc(db, "appointments", id)); showError(false); }
-  catch (e) { console.error(e); showError(true); }
+  if (!db) return false;
+  try {
+    await deleteDoc(doc(db, "appointments", id));
+    showError(false);
+    return true;
+  } catch (error) {
+    console.error(error);
+    showError(true);
+    return false;
+  }
 }
 async function saveExpense(data) {
-  if (!db) return;
-  try { await addDoc(collection(db, "expenses"), data); showError(false); }
-  catch (e) { console.error(e); showError(true); }
+  if (!db) return false;
+  try {
+    await addDoc(collection(db, "expenses"), data);
+    showError(false);
+    return true;
+  } catch (error) {
+    console.error(error);
+    showError(true);
+    return false;
+  }
 }
 async function removeExpense(id) {
-  if (!db) return;
-  try { await deleteDoc(doc(db, "expenses", id)); showError(false); }
-  catch (e) { console.error(e); showError(true); }
+  if (!db) return false;
+  try {
+    await deleteDoc(doc(db, "expenses", id));
+    showError(false);
+    return true;
+  } catch (error) {
+    console.error(error);
+    showError(true);
+    return false;
+  }
 }
 
 function apptsByDay() {
@@ -367,7 +435,6 @@ function overlaps(dayMap, dateStr, time, duration, ignoreId) {
     const aStart = timeToMinutes(a.time), aEnd = aStart + Number(a.duration);
     return start < aEnd && aStart < end;
   });
-  setupSwipeActions(els.todayAgenda);
 }
 
 function dayIntensity(count) {
@@ -597,13 +664,19 @@ function wireForm(onClose = renderDayCard) {
     const item = e.target.closest(".suggestion-item");
     if (item) { e.preventDefault(); clientInput.value = item.textContent; suggestionsList.style.display = 'none'; }
   });
+  let selectedServiceName = serviceSelect.value;
   serviceSelect.addEventListener("change", () => {
+    if (serviceSelect.value === selectedServiceName) return;
+    selectedServiceName = serviceSelect.value;
     const svc = SERVICES.find(s => s.name === serviceSelect.value);
     if (svc && svc.price !== "") costInput.value = svc.price;
   });
   document.getElementById("f_cancel").addEventListener("click", () => { editingId = null; editingSurface = null; onClose(); });
-  document.getElementById("apptForm").addEventListener("submit", async (e) => {
+  const form = document.getElementById("apptForm");
+  let isSubmitting = false;
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (isSubmitting) return;
     const errorEl = document.getElementById("f_error");
     errorEl.innerHTML = "";
     const client = document.getElementById("f_client").value.trim();
@@ -622,7 +695,19 @@ function wireForm(onClose = renderDayCard) {
       return;
     }
     const data = { date: chosenDate, time, duration, client, service: document.getElementById("f_service").value, cost: Number(document.getElementById("f_cost").value) || 0, notes: document.getElementById("f_notes").value.trim() };
-    await saveAppointment(data, realId);
+    const submitButton = form.querySelector(".appointment-save-btn");
+    const submitLabel = submitButton.textContent;
+    isSubmitting = true;
+    submitButton.disabled = true;
+    submitButton.textContent = "Se salvează...";
+    const saved = await saveAppointment(data, realId);
+    if (!saved) {
+      errorEl.innerHTML = `<div class="form-error">Programarea nu a fost salvată. Verifică internetul și încearcă din nou.</div>`;
+      isSubmitting = false;
+      submitButton.disabled = false;
+      submitButton.textContent = submitLabel;
+      return;
+    }
     selectedDate = chosenDate;
     agendaDate = chosenDate;
     const chosen = dateFromKey(chosenDate);
@@ -886,13 +971,19 @@ function retentionLineChart(series, selectedIndex) {
   return `<div class="stats-line-chart"><svg viewBox="0 0 300 118" role="img" aria-label="Evoluția retenției în ultimele 6 luni"><line x1="24" y1="24" x2="276" y2="24"/><line x1="24" y1="56" x2="276" y2="56"/><line x1="24" y1="88" x2="276" y2="88"/><text x="2" y="27">${maxScale}%</text><text x="7" y="59">${Math.round(maxScale / 2)}%</text><text x="12" y="91">0%</text><path class="stats-line-path" d="${path}"/>${points.map(point => `${point.y === null ? "" : `<g class="stats-line-point ${point.index === selectedIndex ? "selected" : ""}" data-retention-index="${point.index}" tabindex="0" role="button" aria-pressed="${point.index === selectedIndex}" aria-label="${escapeHtml(`${point.month} ${point.year}: retenție ${point.value}%`)}"><circle class="stats-line-hit" cx="${point.x}" cy="${point.y}" r="14"/><text class="stats-line-value" x="${point.x}" y="${Math.max(11, point.y - 8)}" text-anchor="middle">${point.value}%</text><circle class="stats-line-marker ${point.isCurrent ? "current" : ""}" cx="${point.x}" cy="${point.y}" r="${point.isCurrent || point.index === selectedIndex ? 4 : 3}"><title>${escapeHtml(`${point.month} ${point.year}: ${point.value}%`)}</title></circle></g>`}<text class="stats-line-label" x="${point.x}" y="110" text-anchor="middle">${escapeHtml(point.label)}</text>`).join("")}</svg></div>`;
 }
 
+function servicePricesFormHtml() {
+  const editableServices = SERVICES.filter(service => service.price !== "");
+  return `<div class="service-prices-modal" role="dialog" aria-modal="true" aria-labelledby="servicePricesTitle"><div class="service-prices-backdrop" id="servicePricesBackdrop" aria-hidden="true"></div><form class="service-prices-sheet" id="servicePricesForm"><div class="sheet-handle" aria-hidden="true"></div><header class="service-prices-header"><div><span>Catalog fix</span><h2 id="servicePricesTitle">Prețuri servicii</h2><p>Modificările se aplică numai programărilor noi.</p></div><button type="button" class="sheet-close" id="servicePricesClose" aria-label="Închide setările"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></header><div class="service-prices-body">${editableServices.map(service => `<label class="service-price-row"><span>${escapeHtml(service.name)}</span><span class="service-price-input"><input type="number" min="1" step="1" inputmode="decimal" value="${service.price}" data-service-price="${service.id}" required><b>lei</b></span></label>`).join("")}<div id="servicePricesError" aria-live="polite"></div></div><footer class="service-prices-footer"><button type="submit" class="service-prices-save">Salvează prețurile</button></footer></form></div>`;
+}
+
 function renderStats() {
   const subTabsHtml = `<div class="stats-subtabs" role="tablist" aria-label="Categorii statistici"><button class="subtab-btn ${statsSubTab === "revenue" ? "active" : ""}" type="button" role="tab" aria-selected="${statsSubTab === "revenue"}" data-substat="revenue">Încasări</button><button class="subtab-btn ${statsSubTab === "clients" ? "active" : ""}" type="button" role="tab" aria-selected="${statsSubTab === "clients"}" data-substat="clients">Cliente</button><button class="subtab-btn ${statsSubTab === "services" ? "active" : ""}" type="button" role="tab" aria-selected="${statsSubTab === "services"}" data-substat="services">Servicii</button></div>`;
   let content = "";
   if (statsSubTab === "revenue") content = renderRevenueSection();
   else if (statsSubTab === "clients") content = renderClientsStatsSection();
   else content = renderServicesStatsSection();
-  els.statsWrap.innerHTML = `<div class="stats-sticky-header"><div class="stats-page-header"><div><span>Analiză salon</span><h2>Statistici</h2></div><div class="stats-page-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></div></div>${subTabsHtml}</div><div class="stats-page-content">${content}</div>`;
+  const pricesModal = servicePricesOpen ? servicePricesFormHtml() : "";
+  els.statsWrap.innerHTML = `<div class="stats-sticky-header"><div class="stats-page-header"><div><span>Analiză salon</span><h2>Statistici</h2></div><div class="stats-page-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></div></div>${subTabsHtml}</div><div class="stats-page-content">${content}</div>${pricesModal}`;
   els.statsWrap.querySelectorAll("[data-substat]").forEach(button => {
     button.addEventListener("click", () => { statsSubTab = button.dataset.substat; renderStats(); });
   });
@@ -908,6 +999,50 @@ function renderStats() {
       selectPeriod();
     });
   });
+  els.statsWrap.querySelector("[data-service-prices-open]")?.addEventListener("click", () => {
+    servicePricesOpen = true;
+    renderStats();
+  });
+  if (servicePricesOpen) {
+    const closePrices = () => { servicePricesOpen = false; renderStats(); };
+    document.getElementById("servicePricesClose").addEventListener("click", closePrices);
+    document.getElementById("servicePricesBackdrop").addEventListener("click", closePrices);
+    const pricesForm = document.getElementById("servicePricesForm");
+    let isSubmitting = false;
+    pricesForm.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (isSubmitting) return;
+      const errorEl = document.getElementById("servicePricesError");
+      errorEl.innerHTML = "";
+      const prices = {};
+      for (const input of pricesForm.querySelectorAll("[data-service-price]")) {
+        const price = Number(input.value);
+        if (!Number.isFinite(price) || price <= 0) {
+          errorEl.innerHTML = `<div class="form-error">Completează toate prețurile cu valori valide.</div>`;
+          input.focus();
+          return;
+        }
+        prices[input.dataset.servicePrice] = price;
+      }
+      const submitButton = pricesForm.querySelector(".service-prices-save");
+      const submitLabel = submitButton.textContent;
+      isSubmitting = true;
+      submitButton.disabled = true;
+      submitButton.textContent = "Se salvează...";
+      const saved = await saveServicePrices(prices);
+      if (!saved) {
+        errorEl.innerHTML = `<div class="form-error">Prețurile nu au fost salvate. Verifică internetul și încearcă din nou.</div>`;
+        isSubmitting = false;
+        submitButton.disabled = false;
+        submitButton.textContent = submitLabel;
+        return;
+      }
+      applyServicePrices(prices);
+      servicePricesOpen = false;
+      showToast("Prețuri actualizate");
+      renderStats();
+    });
+  }
   const scrollEl = document.getElementById("weekChartScroll");
   if (scrollEl) scrollEl.scrollLeft = scrollEl.scrollWidth;
 }
@@ -987,53 +1122,10 @@ function renderServicesStatsSection() {
     ? "Calculul va deveni disponibil după ce există vizite consecutive."
     : `Calculat din ${rebooking.gapCount} intervale între vizite consecutive, la clientele cu minimum 2 programări.`;
 
-  return `<section class="stats-services-toolbar"><span>Servicii după venit</span></section><section class="stats-panel services-panel">${sorted.length ? `<ol class="stats-services-list">${sorted.map((service, index) => {
+  return `<section class="stats-services-toolbar"><span>Servicii după venit</span><button type="button" class="service-prices-open" data-service-prices-open aria-label="Modifică prețurile serviciilor"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.5"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.86 2.86-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1.4 1.5v.1H9.5v-.1A1.7 1.7 0 0 0 8 19.4a1.7 1.7 0 0 0-1.88.34l-.06.06-2.86-2.86.06-.06A1.7 1.7 0 0 0 3.6 15a1.7 1.7 0 0 0-1.5-1.4H2V9.5h.1A1.7 1.7 0 0 0 3.6 8a1.7 1.7 0 0 0-.34-1.88l-.06-.06L6.06 3.2l.06.06A1.7 1.7 0 0 0 8 3.6a1.7 1.7 0 0 0 1.5-1.4V2h4.1v.2A1.7 1.7 0 0 0 15 3.6a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.86 2.86-.06.06A1.7 1.7 0 0 0 19.4 8a1.7 1.7 0 0 0 1.5 1.5h.1v4.1h-.1a1.7 1.7 0 0 0-1.5 1.4Z"/></svg></button></section><section class="stats-panel services-panel">${sorted.length ? `<ol class="stats-services-list">${sorted.map((service, index) => {
     const percent = Math.round((service.total / totalRevenue) * 100);
     return `<li><span class="stats-rank-number">${index + 1}</span><div class="stats-service-main"><div><strong>${escapeHtml(service.name)}</strong><b>${formatStatsMoney(service.total)}</b></div><div class="stats-service-meta"><span>${service.count} ${service.count === 1 ? "rezervare" : "rezervări"}</span><span>${percent}% din venit</span></div><div class="stats-service-track"><span style="width:${Math.max(2, percent)}%"></span></div></div></li>`;
   }).join("")}</ol>` : `<p class="stats-empty-copy">Nicio programare înregistrată încă.</p>`}</section><section class="stats-rebooking-card"><div><small>Durată medie între programări</small><strong>${rebooking === null ? "—" : `${rebooking.avgDays} zile`}</strong><p>${escapeHtml(rebookingText)}</p></div><span class="stats-rebooking-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></span></section><div class="stats-calculation-note"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>${escapeHtml(calculationText)}</span></div>`;
-}
-
-function renderExpensesLegacy() {
-  if (!els.expensesWrap) return;
-  const prefix = `${expYear}-${pad(expMonth + 1)}`;
-  const monthItems = expenses.filter(e => e.date.startsWith(prefix)).sort((a, b) => b.date.localeCompare(a.date));
-  const totalExpenses = monthItems.reduce((s, e) => s + (Number(e.amount) || 0), 0);
-  const totalRevenue = appointments.filter(a => a.date.startsWith(prefix)).reduce((s, a) => s + (Number(a.cost) || 0), 0);
-  const profit = totalRevenue - totalExpenses;
-  const profitClass = profit >= 0 ? 'profit-positive' : 'profit-negative';
-  const profitSign = profit >= 0 ? '+' : '';
-  const yearPrefix = `${expYear}-`;
-  const yearExpenses = expenses.filter(e => e.date.startsWith(yearPrefix)).reduce((s, e) => s + (Number(e.amount) || 0), 0);
-  const yearRevenue = appointments.filter(a => a.date.startsWith(yearPrefix)).reduce((s, a) => s + (Number(a.cost) || 0), 0);
-  const yearProfit = yearRevenue - yearExpenses;
-  const yearProfitClass = yearProfit >= 0 ? 'profit-positive' : 'profit-negative';
-  const yearProfitSign = yearProfit >= 0 ? '+' : '';
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
-  els.expensesWrap.innerHTML = `<div class="card"><div class="exp-nav"><button class="nav-btn" id="expPrevMonth">‹</button><div class="month-label">${MONTHS_RO[expMonth]} ${expYear}</div><button class="nav-btn" id="expNextMonth">›</button></div></div><div class="card"><div class="stats-card-title">Rezumat ${MONTHS_RO[expMonth].toLowerCase()} ${expYear}</div><div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;"><div style="flex:1; min-width:90px; text-align:center; background:#1C1A26; border-radius:12px; padding:14px 8px;"><div style="font-family:'Fraunces',serif; font-size:20px; font-weight:700; color:#34D399; line-height:1;">${totalRevenue.toFixed(0)} lei</div><div style="font-size:12px; color:#A79FBD; margin-top:5px;">Încăsări</div></div><div style="flex:1; min-width:90px; text-align:center; background:#1C1A26; border-radius:12px; padding:14px 8px;"><div style="font-family:'Fraunces',serif; font-size:20px; font-weight:700; color:#F1616B; line-height:1;">${totalExpenses.toFixed(0)} lei</div><div style="font-size:12px; color:#A79FBD; margin-top:5px;">Cheltuieli</div></div><div style="flex:1; min-width:90px; text-align:center; background:#1C1A26; border-radius:12px; padding:14px 8px;"><div style="font-family:'Fraunces',serif; font-size:20px; font-weight:700; line-height:1;" class="${profitClass}">${profitSign}${profit.toFixed(0)} lei</div><div style="font-size:12px; color:#A79FBD; margin-top:5px;">Profit net</div></div></div></div><div class="card"><div class="stats-card-title">Total ${expYear}</div><div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:4px;"><div style="flex:1; min-width:90px; text-align:center; background:#1C1A26; border-radius:12px; padding:14px 8px;"><div style="font-family:'Fraunces',serif; font-size:20px; font-weight:700; color:#F1616B; line-height:1;">${yearExpenses.toFixed(0)} lei</div><div style="font-size:12px; color:#A79FBD; margin-top:5px;">Cheltuieli totale</div></div><div style="flex:1; min-width:90px; text-align:center; background:#1C1A26; border-radius:12px; padding:14px 8px;"><div style="font-family:'Fraunces',serif; font-size:20px; font-weight:700; line-height:1;" class="${yearProfitClass}">${yearProfitSign}${yearProfit.toFixed(0)} lei</div><div style="font-size:12px; color:#A79FBD; margin-top:5px;">Profit total</div></div></div></div><div class="card">${expFormOpen ? `<div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;"><div class="stats-card-title" style="margin:0;">Adaugă cheltuială</div><button type="button" class="icon-btn" id="expFormClose" aria-label="Închide"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div><form id="expForm" style="display:flex; flex-direction:column; gap:12px; margin-top:4px;"><label class="field">Articol / descriere<input type="text" id="exp_item" placeholder="ex: Gel UV, pensule, folie..." autocomplete="off" required></label><div class="form-row"><label class="field">Sumă (lei)<input type="number" id="exp_amount" min="0.01" step="0.01" placeholder="ex: 85" required></label><label class="field">Data<input type="date" id="exp_date" value="${todayStr}" required></label></div><div id="exp_error"></div><button type="submit" class="save-btn" style="width:100%">+ Adaugă cheltuială</button></form>` : `<button type="button" class="save-btn" id="expFormOpenBtn" style="width:100%">+ Adaugă cheltuială</button>`}</div>${monthItems.length === 0 ? `<div class="card"><p class="no-appts">Nicio cheltuială în ${MONTHS_RO[expMonth].toLowerCase()} ${expYear}.</p></div>` : `<div class="card"><div class="stats-card-title">Cheltuieli — ${MONTHS_RO[expMonth].toLowerCase()} ${expYear}</div><ul style="list-style:none; display:flex; flex-direction:column; gap:8px; margin-top:4px;">${monthItems.map(e => { const parts = e.date.split('-').map(Number); return `<li class="exp-item"><div class="exp-date">${parts[2]} ${MONTHS_RO[parts[1]-1].slice(0,3)}</div><div class="exp-name">${escapeHtml(e.item)}</div><div class="exp-amount">${Number(e.amount).toFixed(0)} lei</div><button class="icon-btn danger" data-delexp="${e.id}" aria-label="Şterge"><svg viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v6M14 11v6"/></svg></button></li>`; }).join('')}</ul></div>` }`;
-  document.getElementById("expPrevMonth").addEventListener("click", () => { if (expMonth === 0) { expMonth = 11; expYear -= 1; } else expMonth -= 1; renderExpenses(); });
-  document.getElementById("expNextMonth").addEventListener("click", () => { if (expMonth === 11) { expMonth = 0; expYear += 1; } else expMonth += 1; renderExpenses(); });
-  if (expFormOpen) {
-    document.getElementById("expForm").addEventListener("submit", async (ev) => {
-      ev.preventDefault();
-      const item = document.getElementById("exp_item").value.trim();
-      const amount = Number(document.getElementById("exp_amount").value);
-      const date = document.getElementById("exp_date").value;
-      const errEl = document.getElementById("exp_error");
-      errEl.innerHTML = "";
-      if (!item) { errEl.innerHTML = `<div class="form-error">Adaugă descrierea articolului.</div>`; return; }
-      if (!amount || amount <= 0) { errEl.innerHTML = `<div class="form-error">Adaugă o sumă validă.</div>`; return; }
-      if (!date) { errEl.innerHTML = `<div class="form-error">Selectează data.</div>`; return; }
-      await saveExpense({ item, amount, date });
-      expFormOpen = false;
-      showToast("✓ Cheltuială adăugată");
-      renderExpenses();
-    });
-    document.getElementById("expFormClose").addEventListener("click", () => { expFormOpen = false; renderExpenses(); });
-  } else {
-    document.getElementById("expFormOpenBtn").addEventListener("click", () => { expFormOpen = true; renderExpenses(); });
-  }
-  els.expensesWrap.querySelectorAll("[data-delexp]").forEach(btn => { btn.addEventListener("click", () => showConfirmExpense(btn.dataset.delexp)); });
 }
 
 function expenseFormHtml(todayStr) {
@@ -1074,17 +1166,20 @@ function renderExpenses() {
     else expMonth += 1;
     renderExpenses();
   });
-  document.getElementById("expFormOpenBtn").addEventListener("click", () => {
-    expFormOpen = true;
-    renderExpenses();
-  });
+    document.getElementById("expFormOpenBtn").addEventListener("click", () => {
+      expFormOpen = true;
+      renderExpenses();
+    });
 
   if (expFormOpen) {
     const closeExpenseForm = () => { expFormOpen = false; renderExpenses(); };
     document.getElementById("expFormClose").addEventListener("click", closeExpenseForm);
     document.getElementById("expenseBackdrop").addEventListener("click", closeExpenseForm);
-    document.getElementById("expForm").addEventListener("submit", async event => {
+    const expenseForm = document.getElementById("expForm");
+    let isSubmitting = false;
+    expenseForm.addEventListener("submit", async event => {
       event.preventDefault();
+      if (isSubmitting) return;
       const item = document.getElementById("exp_item").value.trim();
       const amount = Number(document.getElementById("exp_amount").value);
       const date = document.getElementById("exp_date").value;
@@ -1093,7 +1188,19 @@ function renderExpenses() {
       if (!item) { errorEl.innerHTML = `<div class="form-error">Adaugă descrierea articolului.</div>`; return; }
       if (!amount || amount <= 0) { errorEl.innerHTML = `<div class="form-error">Adaugă o sumă validă.</div>`; return; }
       if (!date) { errorEl.innerHTML = `<div class="form-error">Selectează data.</div>`; return; }
-      await saveExpense({ item, amount, date });
+      const submitButton = expenseForm.querySelector(".expense-submit-btn");
+      const submitLabel = submitButton.textContent;
+      isSubmitting = true;
+      submitButton.disabled = true;
+      submitButton.textContent = "Se salvează...";
+      const saved = await saveExpense({ item, amount, date });
+      if (!saved) {
+        errorEl.innerHTML = `<div class="form-error">Cheltuiala nu a fost salvată. Verifică internetul și încearcă din nou.</div>`;
+        isSubmitting = false;
+        submitButton.disabled = false;
+        submitButton.textContent = submitLabel;
+        return;
+      }
       expFormOpen = false;
       showToast("✓ Cheltuială adăugată");
       renderExpenses();
