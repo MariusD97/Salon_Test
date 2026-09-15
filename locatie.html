@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Instrucțiuni pentru a ajunge la Salon Alexandra.">
+  <title>Cum ajungi | Salon Alexandra</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+    :root { --bg:#0b0a12; --surface:#14131c; --surface-strong:#191722; --border:#292635; --text:#f7f5fb; --muted:#aaa3b7; --muted-soft:#817a8e; --purple:#8f7cff; --purple-light:#b9aeff; --green:#35d6a0; }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body { margin:0; min-height:100vh; padding:24px 16px calc(36px + env(safe-area-inset-bottom)); background:var(--bg); color:var(--text); font-family:Inter,sans-serif; }
+    .page { width:min(100%,620px); margin:0 auto; }
+    .brand { padding:18px 2px 22px; }
+    .eyebrow { margin:0 0 6px; color:var(--purple); font-size:11px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+    h1,h2,p { margin:0; }
+    h1,h2 { font-family:Fraunces,serif; font-weight:600; letter-spacing:0; }
+    h1 { font-size:clamp(30px,8vw,42px); line-height:1.08; }
+    h2 { font-size:22px; line-height:1.2; }
+    .intro { margin-top:9px; max-width:460px; color:var(--muted); font-size:13px; line-height:1.55; }
+    .location-card,.route-card,.arrival-card,.contact-card { border:1px solid var(--border); border-radius:16px; background:var(--surface); }
+    .location-card { padding:18px; }
+    .section-kicker { display:block; margin-bottom:7px; color:var(--muted-soft); font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .address { color:var(--text); font-size:16px; font-weight:600; line-height:1.55; }
+    .address strong { color:var(--purple-light); }
+    .actions { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:9px; margin-top:17px; }
+    .action { min-height:48px; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 12px; border:0; border-radius:11px; color:var(--text); font:600 12px Inter,sans-serif; text-align:center; text-decoration:none; transition:transform .12s ease,background-color .18s ease; }
+    .action:active { transform:scale(.97); }
+    .action.primary { background:var(--purple); color:#0b0911; }
+    .action.primary:hover { background:#9b8bff; }
+    .action.secondary { border:1px solid var(--border); background:var(--surface-strong); }
+    .action.secondary:hover { background:#211f2d; }
+    .action svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.8; }
+    .route-card { margin-top:14px; overflow:hidden; }
+    .route-link { display:block; color:inherit; text-decoration:none; }
+    .route-image { display:block; width:100%; height:auto; max-height:430px; object-fit:cover; background:#211f2d; }
+    .route-caption { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 15px; }
+    .route-caption strong { font-size:12.5px; }
+    .route-caption span { color:var(--purple-light); font-size:11px; font-weight:600; white-space:nowrap; }
+    .content-section { margin-top:28px; }
+    .content-section > h2 { margin-bottom:11px; }
+    .arrival-card { padding:5px 16px; }
+    .arrival-row { display:grid; grid-template-columns:30px minmax(0,1fr); gap:11px; align-items:start; padding:14px 0; }
+    .arrival-row + .arrival-row { border-top:1px solid var(--border); }
+    .arrival-number { width:26px; height:26px; display:grid; place-items:center; border-radius:8px; background:rgba(143,124,255,.12); color:var(--purple-light); font-size:11px; font-weight:700; }
+    .arrival-row strong { display:block; font-size:13px; line-height:1.35; }
+    .arrival-row p { margin-top:3px; color:var(--muted-soft); font-size:11.5px; line-height:1.45; }
+    .contact-card { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:16px; }
+    .contact-card p { margin-top:4px; color:var(--muted-soft); font-size:11px; line-height:1.4; }
+    .phone { color:var(--green); font-size:15px; font-weight:700; white-space:nowrap; text-decoration:none; }
+    .footer-note { margin:24px 3px 0; color:var(--muted-soft); font-size:10.5px; line-height:1.5; text-align:center; }
+    @media (max-width:390px) { body { padding-left:12px; padding-right:12px; } .actions { grid-template-columns:1fr; } .contact-card { align-items:flex-start; flex-direction:column; } }
+    @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } .action { transition:none; } }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="brand">
+      <p class="eyebrow">Salon Alexandra</p>
+      <h1>Cum ajungi la noi</h1>
+      <p class="intro">Găsești mai jos locația exactă și traseul până la salon.</p>
+    </header>
+    <section class="location-card" aria-labelledby="location-title">
+      <span class="section-kicker" id="location-title">Locație</span>
+      <p class="address"><strong>Bloc C4</strong><br>Scara D, Etaj 1, Apartamentul 7</p>
+      <div class="actions">
+        <a class="action primary" href="https://www.google.com/maps/dir/?api=1&amp;destination=47.152835%2C27.661547&amp;travelmode=driving" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.2 7-12A7 7 0 0 0 5 9c0 5.8 7 12 7 12Z"/><circle cx="12" cy="9" r="2.2"/></svg>Deschide traseul</a>
+        <a class="action secondary" href="https://maps.app.goo.gl/a9St6S8MCthXYt5D6" target="_blank" rel="noopener noreferrer">Vezi locația</a>
+      </div>
+    </section>
+    <section class="route-card" aria-label="Hartă și traseu către locație">
+      <a class="route-link" href="https://www.google.com/maps/dir/?api=1&amp;destination=47.152835%2C27.661547&amp;travelmode=driving" target="_blank" rel="noopener noreferrer">
+        <img class="route-image" src="assets/traseu-locatie.jpg" alt="Hartă cu traseul către Bloc C4, Scara D">
+        <div class="route-caption"><strong>Apasă pe hartă pentru indicații</strong><span>Google Maps ↗</span></div>
+      </a>
+    </section>
+    <section class="content-section" aria-labelledby="arrival-title">
+      <h2 id="arrival-title">La sosire</h2>
+      <div class="arrival-card">
+        <div class="arrival-row"><span class="arrival-number">1</span><div><strong>Intră în Bloc C4</strong><p>Folosește Scara D pentru a ajunge la apartament.</p></div></div>
+        <div class="arrival-row"><span class="arrival-number">2</span><div><strong>Urcă la Etajul 1</strong><p>Salonul se află la Apartamentul 7.</p></div></div>
+        <div class="arrival-row"><span class="arrival-number">3</span><div><strong>Ai ajuns</strong><p>Nu există interfon. Dacă ai nevoie de ajutor, sună la numărul de mai jos.</p></div></div>
+      </div>
+    </section>
+    <section class="content-section" aria-labelledby="contact-title">
+      <div class="contact-card"><div><h2 id="contact-title">Ai nevoie de ajutor?</h2><p>Sună dacă nu găsești intrarea sau ai întrebări.</p></div><a class="phone" href="tel:+40757985141">0757 985 141</a></div>
+    </section>
+    <p class="footer-note">Te rugăm să ajungi cu câteva minute înainte de programare.</p>
+  </main>
+</body>
+</html>
