@@ -1148,6 +1148,41 @@ function renderRevenueSection() {
   return `<section class="stats-metric-hero"><span class="stats-period-label">${MONTHS_RO[now.getMonth()]} ${currentYear}</span><strong class="stats-primary-money">${formatStatsMoney(current.total)}</strong><small class="stats-change ${changeClass}">${change === null ? "Comparația lunară nu este disponibilă" : `${change >= 0 ? "+" : ""}${change}% față de luna trecută`}</small></section><section class="stats-panel stats-main-chart"><div class="stats-section-heading"><h3>Încasări lunare</h3><span>Ultimele 6 luni</span></div>${statsBarChart(series.map(item => ({ label: item.label, value: item.total, meta: item.appointmentCount, isCurrent: item.isCurrent })), { money: true, ariaLabel: "Încasări în ultimele 6 luni" })}</section><section class="stats-summary-strip"><div><small>Total în ${currentYear}</small><strong class="money">${formatStatsMoney(yearTotal)}</strong></div><div><small>Media lunară</small><strong>${formatStatsMoney(monthlyAverage)}</strong></div><div><small>Media săptămânală</small><strong class="accent">${formatStatsMoney(weeklyAverage)}</strong></div></section>${weekSeries.length ? `<section class="stats-panel"><div class="stats-section-heading"><h3>Încasări pe săptămâni</h3><span>${weekSeries.length} intervale</span></div><div class="stats-week-scroll" id="weekChartScroll">${statsBarChart(weekSeries.map(item => ({ label: item.label, value: item.total, meta: item.appointmentCount, isCurrent: item.isCurrent })), { money: true, compact: true, ariaLabel: "Încasări pe săptămâni" })}</div></section>` : ""}`;
 }
 
+function recurringClientsCount() {
+  const today = dateFromKey(todayDateKey());
+  const cutoff = new Date(today);
+  cutoff.setMonth(cutoff.getMonth() - 6);
+  const latestVisitCutoff = new Date(today);
+  latestVisitCutoff.setDate(latestVisitCutoff.getDate() - 75);
+  let count = 0;
+
+  for (const client of clientsList()) {
+    const visits = client.visits
+      .filter(visit => {
+        const visitDate = dateFromKey(visit.date);
+        return visitDate <= today && visitDate >= cutoff;
+      })
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (visits.length < 3) continue;
+
+    const lastVisitDate = dateFromKey(visits[visits.length - 1].date);
+    if (lastVisitDate < latestVisitCutoff) continue;
+
+    const intervals = [];
+    for (let index = 1; index < visits.length; index++) {
+      intervals.push(daysBetweenDateKeys(visits[index - 1].date, visits[index].date));
+    }
+    intervals.sort((a, b) => a - b);
+    const middle = Math.floor(intervals.length / 2);
+    const medianInterval = intervals.length % 2
+      ? intervals[middle]
+      : (intervals[middle - 1] + intervals[middle]) / 2;
+    if (medianInterval <= 70) count++;
+  }
+
+  return count;
+}
+
 function newClientsByMonth(monthsBack = 12) {
   const allClients = clientsList();
   const now = new Date();
@@ -1181,6 +1216,7 @@ function renderBookingLeadStatsCard() {
 function renderClientsStatsSection() {
   const top = topClientsBySpend(5);
   const newCount = newClientsThisMonth();
+  const recurringCount = recurringClientsCount();
   const retentionSeries = retentionByMonth(6);
   const defaultRetentionIndex = Math.max(0, retentionSeries.length - 1);
   const activeRetentionIndex = Number.isInteger(selectedRetentionIndex) && selectedRetentionIndex >= 0 && selectedRetentionIndex < retentionSeries.length
@@ -1194,7 +1230,7 @@ function renderClientsStatsSection() {
     : `${retention.value}% din ${retention.base} cliente active în luna anterioară au revenit în ${retention.month.toLowerCase()}.`;
   const retentionPeriod = retention ? `${retention.month} ${retention.year}` : "Perioadă indisponibilă";
 
-  return `<section class="stats-summary-strip two stats-client-overview"><div><small>Cliente unice</small><strong class="accent">${totalClients}</strong></div><div><small>Programări totale</small><strong>${totalAppointments}</strong></div></section><section class="stats-metric-hero retention-hero"><span class="stats-period-label">Cliente revenite · ${escapeHtml(retentionPeriod)}</span><strong class="stats-primary-count">${!retention || retention.retained === null ? "—" : retention.retained}</strong><small>${escapeHtml(retentionExplanation)}</small></section><section class="stats-panel stats-retention-panel">${retentionLineChart(retentionSeries, activeRetentionIndex)}</section><section class="stats-highlight-card"><div><small>Cliente noi</small><strong>${newCount}</strong><span>în ${MONTHS_RO[new Date().getMonth()].toLowerCase()} ${new Date().getFullYear()}</span></div><div class="stats-highlight-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15.5 20v-1.5a4 4 0 0 0-4-4h-5a4 4 0 0 0-4 4V20M9 10.5a4 4 0 1 0 0-8 4 4 0 0 0 0 8ZM19 8v6M16 11h6"/></svg></div></section>${renderNewClientsChart()}${renderBookingLeadStatsCard()}<section class="stats-panel"><div class="stats-section-heading"><h3>Top 5 cliente după încasări</h3><span>${top.length}</span></div>${top.length ? `<ol class="stats-ranking-list">${top.map((client, index) => `<li><span class="stats-rank-number">${index + 1}</span><span><strong>${escapeHtml(client.name)}</strong><small>${client.visits.length} ${client.visits.length === 1 ? "vizită" : "vizite"}</small></span><b>${formatStatsMoney(client.total)}</b></li>`).join("")}</ol>` : `<p class="stats-empty-copy">Nicio clientă înregistrată încă.</p>`}</section>`;
+  return `<section class="stats-summary-strip two stats-client-overview"><div><small>Cliente unice</small><strong class="accent">${totalClients}</strong></div><div><small>Programări totale</small><strong>${totalAppointments}</strong></div></section><section class="stats-metric-hero retention-hero"><span class="stats-period-label">Cliente revenite · ${escapeHtml(retentionPeriod)}</span><strong class="stats-primary-count">${!retention || retention.retained === null ? "—" : retention.retained}</strong><small>${escapeHtml(retentionExplanation)}</small></section><section class="stats-panel stats-retention-panel">${retentionLineChart(retentionSeries, activeRetentionIndex)}</section><section class="stats-highlight-card stats-client-highlight"><div class="stats-highlight-item"><small>Cliente noi</small><strong>${newCount}</strong><span>în ${MONTHS_RO[new Date().getMonth()].toLowerCase()} ${new Date().getFullYear()}</span></div><div class="stats-highlight-item"><small>Cliente recurente</small><strong>${recurringCount}</strong><span>3+ vizite în 6 luni</span></div></section>${renderNewClientsChart()}${renderBookingLeadStatsCard()}<section class="stats-panel"><div class="stats-section-heading"><h3>Top 5 cliente după încasări</h3><span>${top.length}</span></div>${top.length ? `<ol class="stats-ranking-list">${top.map((client, index) => `<li><span class="stats-rank-number">${index + 1}</span><span><strong>${escapeHtml(client.name)}</strong><small>${client.visits.length} ${client.visits.length === 1 ? "vizită" : "vizite"}</small></span><b>${formatStatsMoney(client.total)}</b></li>`).join("")}</ol>` : `<p class="stats-empty-copy">Nicio clientă înregistrată încă.</p>`}</section>`;
 }
 
 function renderServicesStatsSection() {
