@@ -1354,7 +1354,8 @@ body.stats-view-open { padding-top: 0; }
   font-weight: 500;
 }
 .stats-primary-money,
-.stats-primary-rate {
+.stats-primary-rate,
+.stats-primary-count {
   display: block;
   margin-top: 5px;
   font-family: 'Fraunces', serif;
@@ -1364,7 +1365,8 @@ body.stats-view-open { padding-top: 0; }
   letter-spacing: 0;
 }
 .stats-primary-money { color: #35D6A0; }
-.stats-primary-rate { color: #8F7CFF; }
+.stats-primary-rate,
+.stats-primary-count { color: #8F7CFF; }
 .stats-metric-hero small {
   display: block;
   margin-top: 6px;
