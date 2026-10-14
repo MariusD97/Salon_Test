@@ -1388,6 +1388,36 @@ body.stats-view-open { padding-top: 0; }
   background: #14131C;
 }
 .stats-panel { padding: 15px; }
+.stats-collapsible.stats-panel { padding: 0; }
+.stats-collapsible summary {
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 15px;
+  list-style: none;
+  color: #F1EEF5;
+  font-size: 13px;
+  line-height: 1.4;
+  font-weight: 600;
+  cursor: pointer;
+}
+.stats-collapsible summary::-webkit-details-marker { display: none; }
+.stats-collapsible summary::after {
+  content: "";
+  width: 7px;
+  height: 7px;
+  flex: 0 0 7px;
+  border-right: 2px solid #8F7CFF;
+  border-bottom: 2px solid #8F7CFF;
+  transform: rotate(45deg);
+  transition: transform 0.15s ease;
+}
+.stats-collapsible[open] summary { border-bottom: 1px solid #272431; }
+.stats-collapsible[open] summary::after { transform: rotate(225deg); }
+.stats-collapsible summary:focus-visible { outline: 2px solid #8F7CFF; outline-offset: -3px; }
+.stats-disclosure-content { padding: 15px; }
 .stats-section-heading {
   min-height: 30px;
   display: flex;

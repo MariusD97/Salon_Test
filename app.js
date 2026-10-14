@@ -977,6 +977,7 @@ function renderClients() {
 
 let statsSubTab = "revenue";
 let selectedRetentionIndex = null;
+const clientStatsDisclosures = { lead: false, top: false };
 
 function formatStatsMoney(value) {
   return `${new Intl.NumberFormat("ro-RO", { maximumFractionDigits: 0 }).format(Number(value) || 0)} lei`;
@@ -1062,6 +1063,11 @@ function renderStats() {
   els.statsWrap.innerHTML = `<div class="stats-sticky-header"><div class="stats-page-header"><div><span>Analiză salon</span><h2>Statistici</h2></div><div class="stats-page-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v3M17 2v3M3.5 9h17M5.5 4h13a2 2 0 0 1 2 2v13.5a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"/></svg></div></div>${subTabsHtml}</div><div class="stats-page-content">${content}</div>${pricesModal}`;
   els.statsWrap.querySelectorAll("[data-substat]").forEach(button => {
     button.addEventListener("click", () => { statsSubTab = button.dataset.substat; renderStats(); });
+  });
+  els.statsWrap.querySelectorAll("[data-client-stats-disclosure]").forEach(details => {
+    details.addEventListener("toggle", () => {
+      clientStatsDisclosures[details.dataset.clientStatsDisclosure] = details.open;
+    });
   });
   els.statsWrap.querySelectorAll("[data-retention-index]").forEach(point => {
     const selectPeriod = () => {
@@ -1205,12 +1211,17 @@ function renderNewClientsChart() {
   return `<section class="stats-panel"><div class="stats-section-heading"><h3>Cliente noi pe luni</h3><span>Ultimele 6 luni</span></div>${statsBarChart(series.map(item => ({ label: item.label, value: item.count, isCurrent: item.isCurrent })), { ariaLabel: "Cliente noi în ultimele 6 luni" })}</section>`;
 }
 
+function renderClientStatsDisclosure(key, title, content, extraClass = "") {
+  return `<details class="stats-panel stats-collapsible ${extraClass}" data-client-stats-disclosure="${key}" ${clientStatsDisclosures[key] ? "open" : ""}><summary>${escapeHtml(title)}</summary><div class="stats-disclosure-content">${content}</div></details>`;
+}
+
 function renderBookingLeadStatsCard() {
   const leadStats = bookingLeadStats();
   if (!leadStats) {
-    return `<section class="stats-panel stats-lead-panel"><div class="stats-section-heading"><h3>Anticiparea programărilor</h3></div><p class="stats-empty-copy">Statistica va deveni disponibilă după înregistrarea programărilor noi.</p></section>`;
+    return renderClientStatsDisclosure("lead", "Anticiparea programărilor", `<p class="stats-empty-copy">Statistica va deveni disponibilă după înregistrarea programărilor noi.</p>`, "stats-lead-panel");
   }
-  return `<section class="stats-panel stats-lead-panel"><div class="stats-section-heading"><div><h3>Anticiparea programărilor</h3><span>Cât de devreme se fac programările</span></div><span>${leadStats.count} eligibile</span></div><div class="stats-lead-summary"><div><small>Media</small><strong>${formatLeadDays(leadStats.average)} zile</strong></div><div><small>Mediana</small><strong>${formatLeadDays(leadStats.median)} zile</strong></div></div><div class="stats-lead-distribution" aria-label="Distribuția anticipării programărilor">${leadStats.buckets.map(bucket => `<div class="stats-lead-row"><div><span>${bucket.label}</span><b>${bucket.count}</b></div><div class="stats-lead-track"><span style="width:${bucket.count ? Math.max(4, bucket.percent) : 0}%"></span></div><small>${bucket.percent}%</small></div>`).join("")}</div></section>`;
+  const content = `<div class="stats-section-heading"><div><span>Cât de devreme se fac programările</span></div><span>${leadStats.count} eligibile</span></div><div class="stats-lead-summary"><div><small>Media</small><strong>${formatLeadDays(leadStats.average)} zile</strong></div><div><small>Mediana</small><strong>${formatLeadDays(leadStats.median)} zile</strong></div></div><div class="stats-lead-distribution" aria-label="Distribuția anticipării programărilor">${leadStats.buckets.map(bucket => `<div class="stats-lead-row"><div><span>${bucket.label}</span><b>${bucket.count}</b></div><div class="stats-lead-track"><span style="width:${bucket.count ? Math.max(4, bucket.percent) : 0}%"></span></div><small>${bucket.percent}%</small></div>`).join("")}</div>`;
+  return renderClientStatsDisclosure("lead", "Anticiparea programărilor", content, "stats-lead-panel");
 }
 
 function renderClientsStatsSection() {
@@ -1229,8 +1240,11 @@ function renderClientsStatsSection() {
     ? "Nu sunt suficiente date din luna anterioară pentru a calcula retenția."
     : `${retention.value}% din ${retention.base} cliente active în luna anterioară au revenit în ${retention.month.toLowerCase()}.`;
   const retentionPeriod = retention ? `${retention.month} ${retention.year}` : "Perioadă indisponibilă";
+  const topClientsContent = top.length
+    ? `<ol class="stats-ranking-list">${top.map((client, index) => `<li><span class="stats-rank-number">${index + 1}</span><span><strong>${escapeHtml(client.name)}</strong><small>${client.visits.length} ${client.visits.length === 1 ? "vizită" : "vizite"}</small></span><b>${formatStatsMoney(client.total)}</b></li>`).join("")}</ol>`
+    : `<p class="stats-empty-copy">Nicio clientă înregistrată încă.</p>`;
 
-  return `<section class="stats-summary-strip two stats-client-overview"><div><small>Cliente unice</small><strong class="accent">${totalClients}</strong></div><div><small>Programări totale</small><strong>${totalAppointments}</strong></div></section><section class="stats-metric-hero retention-hero"><span class="stats-period-label">Cliente revenite · ${escapeHtml(retentionPeriod)}</span><strong class="stats-primary-count">${!retention || retention.retained === null ? "—" : retention.retained}</strong><small>${escapeHtml(retentionExplanation)}</small></section><section class="stats-panel stats-retention-panel">${retentionLineChart(retentionSeries, activeRetentionIndex)}</section><section class="stats-highlight-card stats-client-highlight"><div class="stats-highlight-item"><small>Cliente noi</small><strong>${newCount}</strong><span>în ${MONTHS_RO[new Date().getMonth()].toLowerCase()} ${new Date().getFullYear()}</span></div><div class="stats-highlight-item"><small>Cliente recurente</small><strong>${recurringCount}</strong><span>3+ vizite în 6 luni</span></div></section>${renderNewClientsChart()}${renderBookingLeadStatsCard()}<section class="stats-panel"><div class="stats-section-heading"><h3>Top 5 cliente după încasări</h3><span>${top.length}</span></div>${top.length ? `<ol class="stats-ranking-list">${top.map((client, index) => `<li><span class="stats-rank-number">${index + 1}</span><span><strong>${escapeHtml(client.name)}</strong><small>${client.visits.length} ${client.visits.length === 1 ? "vizită" : "vizite"}</small></span><b>${formatStatsMoney(client.total)}</b></li>`).join("")}</ol>` : `<p class="stats-empty-copy">Nicio clientă înregistrată încă.</p>`}</section>`;
+  return `<section class="stats-summary-strip two stats-client-overview"><div><small>Cliente unice</small><strong class="accent">${totalClients}</strong></div><div><small>Programări totale</small><strong>${totalAppointments}</strong></div></section><section class="stats-metric-hero retention-hero"><span class="stats-period-label">Cliente revenite · ${escapeHtml(retentionPeriod)}</span><strong class="stats-primary-count">${!retention || retention.retained === null ? "—" : retention.retained}</strong><small>${escapeHtml(retentionExplanation)}</small></section><section class="stats-panel stats-retention-panel">${retentionLineChart(retentionSeries, activeRetentionIndex)}</section><section class="stats-highlight-card stats-client-highlight"><div class="stats-highlight-item"><small>Cliente noi</small><strong>${newCount}</strong><span>în ${MONTHS_RO[new Date().getMonth()].toLowerCase()} ${new Date().getFullYear()}</span></div><div class="stats-highlight-item"><small>Cliente recurente</small><strong>${recurringCount}</strong><span>3+ vizite în 6 luni</span></div></section>${renderNewClientsChart()}${renderBookingLeadStatsCard()}${renderClientStatsDisclosure("top", "Top 5 cliente după încasări", topClientsContent)}`;
 }
 
 function renderServicesStatsSection() {
