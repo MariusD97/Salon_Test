@@ -1286,14 +1286,12 @@ function renderExpenses() {
   const yearProfitSign = yearProfit > 0 ? "+" : "";
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  const yearLastDataMonth = [...expenses, ...appointments]
-    .filter(entry => entry.date && entry.date.startsWith(yearPrefix))
-    .reduce((max, entry) => Math.max(max, Number(entry.date.slice(5, 7)) || 0), 0);
-  const yearMonthsCount = expYear < today.getFullYear()
-    ? 12
-    : expYear === today.getFullYear()
-      ? Math.max(today.getMonth() + 1, yearLastDataMonth)
-      : Math.max(1, yearLastDataMonth);
+  const yearRevenueMonths = new Set(
+    appointments
+      .filter(appointment => appointment.date && appointment.date.startsWith(yearPrefix) && (Number(appointment.cost) || 0) > 0)
+      .map(appointment => appointment.date.slice(5, 7))
+  );
+  const yearMonthsCount = yearRevenueMonths.size;
   const yearMonthlyAvg = yearMonthsCount > 0 ? yearProfit / yearMonthsCount : 0;
   const yearMonthlyAvgClass = yearMonthlyAvg >= 0 ? "profit-positive" : "profit-negative";
   const yearMonthlyAvgSign = yearMonthlyAvg > 0 ? "+" : "";
