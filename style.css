@@ -2076,7 +2076,7 @@ body.client-profile-open .clients-sticky-header { display: none; }
 .expenses-section-heading button:hover { background: #9B8BFF; }
 .expenses-section-heading button:focus-visible { outline: 2px solid #F5F3F9; outline-offset: 2px; }
 .expenses-section-heading button svg { width: 19px; height: 19px; }
-.expenses-year-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 8px; overflow: hidden; border: 1px solid #272431; border-radius: 11px; }
+.expenses-year-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-top: 8px; overflow: hidden; border: 1px solid #272431; border-radius: 11px; }
 .expenses-year-grid > div { min-width: 0; min-height: 72px; display: flex; flex-direction: column; justify-content: center; padding: 12px; }
 .expenses-year-grid > div + div { border-left: 1px solid #272431; }
 
@@ -2170,6 +2170,7 @@ body.client-profile-open .clients-sticky-header { display: none; }
   .expense-form-row { grid-template-columns: 1fr; }
   .expenses-summary-strip strong,
   .expenses-year-grid strong { font-size: 12px; }
+  .expenses-year-grid > div { padding: 10px 8px; }
   .expense-swipe-content { grid-template-columns: 29px minmax(0, 1fr) auto; gap: 8px; padding-left: 11px; padding-right: 11px; }
 }
 
