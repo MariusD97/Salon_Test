@@ -2046,9 +2046,8 @@ body.client-profile-open .clients-sticky-header { display: none; }
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   margin-top: 16px;
-  padding: 14px 0;
+  padding-top: 14px;
   border-top: 1px solid #272431;
-  border-bottom: 1px solid #272431;
 }
 .expenses-month-split > div,
 .expenses-year-grid > div { min-width: 0; display: flex; flex-direction: column; }
@@ -2056,7 +2055,6 @@ body.client-profile-open .clients-sticky-header { display: none; }
 .expenses-month-split > div:first-child { padding-left: 0; }
 .expenses-month-split > div:last-child { padding-right: 0; }
 .expenses-month-split > div + div { border-left: 1px solid #272431; }
-.expenses-month-split .expenses-month-ratio { color: #F1EEF5; }
 .expenses-month-split small,
 .expenses-year-grid small,
 .expenses-meter-head small {
@@ -2083,12 +2081,10 @@ body.client-profile-open .clients-sticky-header { display: none; }
 .expenses-meter-head strong { flex: 0 0 auto; color: #F1EEF5; font-size: 14px; line-height: 1.2; font-weight: 700; white-space: nowrap; }
 .expenses-meter-bar { height: 4px; margin-top: 9px; overflow: hidden; border-radius: 999px; background: #272431; }
 .expenses-meter-bar span { display: block; height: 100%; border-radius: inherit; transition: width .3s ease; }
-.expenses-meter-bar.is-expense span { background: #F1616B; }
 .expenses-meter-bar.is-income span { background: #34D399; }
 .expenses-meter-note { margin: 8px 0 0; color: #777081; font-size: 10px; line-height: 1.4; }
 
 .expenses-year-heading h3 { color: #F1EEF5; font-size: 13px; line-height: 1.4; font-weight: 600; }
-.expenses-year-heading span { display: block; margin-top: 2px; color: #777081; font-size: 10px; line-height: 1.35; }
 .expenses-year-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
