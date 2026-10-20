@@ -1286,15 +1286,30 @@ function renderExpenses() {
   const yearProfitSign = yearProfit > 0 ? "+" : "";
   const today = new Date();
   const todayStr = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  const yearRevenueMonths = new Set(
-    appointments
-      .filter(appointment => appointment.date && appointment.date.startsWith(yearPrefix) && (Number(appointment.cost) || 0) > 0)
-      .map(appointment => appointment.date.slice(5, 7))
-  );
-  const yearMonthsCount = yearRevenueMonths.size;
-  const yearMonthlyAvg = yearMonthsCount > 0 ? yearProfit / yearMonthsCount : 0;
-  const yearMonthlyAvgClass = yearMonthlyAvg >= 0 ? "profit-positive" : "profit-negative";
+  // Monthly net average: only months with at least MIN_MONTH_REVENUE_FOR_AVG lei revenue count,
+  // and each counted month contributes its own net profit (revenue - expenses of that month).
+  const MIN_MONTH_REVENUE_FOR_AVG = 2000;
+  const yearRevenueByMonth = new Map();
+  appointments
+    .filter(appointment => appointment.date && appointment.date.startsWith(yearPrefix))
+    .forEach(appointment => {
+      const month = appointment.date.slice(5, 7);
+      yearRevenueByMonth.set(month, (yearRevenueByMonth.get(month) || 0) + (Number(appointment.cost) || 0));
+    });
+  const yearExpensesByMonth = new Map();
+  expenses
+    .filter(expense => expense.date && expense.date.startsWith(yearPrefix))
+    .forEach(expense => {
+      const month = expense.date.slice(5, 7);
+      yearExpensesByMonth.set(month, (yearExpensesByMonth.get(month) || 0) + (Number(expense.amount) || 0));
+    });
+  const qualifyingMonths = [...yearRevenueByMonth.entries()].filter(([, revenue]) => revenue >= MIN_MONTH_REVENUE_FOR_AVG);
+  const yearMonthsCount = qualifyingMonths.length;
+  const qualifyingProfit = qualifyingMonths.reduce((sum, [month, revenue]) => sum + revenue - (yearExpensesByMonth.get(month) || 0), 0);
+  const yearMonthlyAvg = yearMonthsCount > 0 ? qualifyingProfit / yearMonthsCount : 0;
+  const yearMonthlyAvgClass = yearMonthsCount === 0 ? "" : (yearMonthlyAvg >= 0 ? "profit-positive" : "profit-negative");
   const yearMonthlyAvgSign = yearMonthlyAvg > 0 ? "+" : "";
+  const yearMonthlyAvgText = yearMonthsCount === 0 ? "—" : `${yearMonthlyAvgSign}${formatStatsMoney(yearMonthlyAvg)}`;
   const formatExpenseRatio = ratio => `${ratio.toLocaleString("ro-RO", { maximumFractionDigits: 1 })}%`;
   const expenseRatioBarWidth = ratio => ratio === null ? 0 : Math.min(100, Math.max(0, ratio));
   const expenseRatioBarHtml = (ratio, modifier, label) => {
@@ -1312,7 +1327,7 @@ function renderExpenses() {
     : `Aproximativ ${Math.round(yearExpenseRatio)} lei din fiecare 100 lei încasați.`;
 
   const monthCardHtml = `<section class="expenses-month-card" aria-label="Rezumat lunar"><span class="expenses-card-label">Profit net · ${MONTHS_RO[expMonth]}</span><strong class="expenses-month-profit ${profitClass}">${profitSign}${formatStatsMoney(profit)}</strong><div class="expenses-month-split"><div><small>Încasări</small><strong class="profit-positive">${formatStatsMoney(totalRevenue)}</strong></div><div><small>Cheltuieli</small><strong class="profit-negative">${formatStatsMoney(totalExpenses)}</strong></div><div><small>Procent cheltuieli</small><strong class="profit-negative">${monthExpenseRatioText}</strong></div></div></section>`;
-  const yearCardHtml = `<section class="expenses-year-card" aria-label="Rezumat anual"><div class="expenses-year-heading"><h3>Rezumat ${expYear}</h3></div><div class="expenses-year-grid"><div><small>Profit total</small><strong class="${yearProfitClass}">${yearProfitSign}${formatStatsMoney(yearProfit)}</strong></div><div><small>Cheltuieli totale</small><strong class="profit-negative">${formatStatsMoney(yearExpenses)}</strong></div><div><small>Media lunară netă</small><strong class="${yearMonthlyAvgClass}">${yearMonthlyAvgSign}${formatStatsMoney(yearMonthlyAvg)}</strong></div></div><div class="expenses-meter"><div class="expenses-meter-head"><small>Din încasări, cheltuieli</small><strong>${yearExpenseRatioText}</strong></div>${expenseRatioBarHtml(yearExpenseRatio, "is-income", "Procent din încasările anuale cheltuit")}<p class="expenses-meter-note">${yearExpenseRatioNote}</p></div></section>`;
+  const yearCardHtml = `<section class="expenses-year-card" aria-label="Rezumat anual"><div class="expenses-year-heading"><h3>Rezumat ${expYear}</h3></div><div class="expenses-year-grid"><div><small>Profit total</small><strong class="${yearProfitClass}">${yearProfitSign}${formatStatsMoney(yearProfit)}</strong></div><div><small>Cheltuieli totale</small><strong class="profit-negative">${formatStatsMoney(yearExpenses)}</strong></div><div><small>Media lunară netă</small><strong class="${yearMonthlyAvgClass}">${yearMonthlyAvgText}</strong></div></div><div class="expenses-meter"><div class="expenses-meter-head"><small>Din încasări, cheltuieli</small><strong>${yearExpenseRatioText}</strong></div>${expenseRatioBarHtml(yearExpenseRatio, "is-income", "Procent din încasările anuale cheltuit")}<p class="expenses-meter-note">${yearExpenseRatioNote}</p></div></section>`;
 
   const listHtml = monthItems.length === 0
     ? `<div class="expenses-empty">${EMPTY_ICON}<h3>Nicio cheltuială</h3><p>Nu există cheltuieli în ${MONTHS_RO[expMonth].toLowerCase()} ${expYear}.</p></div>`
