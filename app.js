@@ -505,13 +505,12 @@ function overlaps(dayMap, dateStr, time, duration, ignoreId) {
   });
 }
 
-function dayDotsHtml(count) {
+function dayIntensity(count) {
   if (count === 0) return "";
-  const shown = Math.min(count, 4);
-  let dots = "";
-  for (let i = 0; i < shown; i++) dots += `<i class="swatch"></i>`;
-  if (count > 4) dots += `<b class="day-dots-more">+</b>`;
-  return `<span class="day-dots">${dots}</span>`;
+  if (count === 1) return "c1";
+  if (count === 2) return "c2";
+  if (count === 3) return "c4";
+  return "c5";
 }
 
 function renderAll() {
@@ -641,10 +640,11 @@ function renderCalendar() {
   for (let d = 1; d <= daysInMonth; d++) {
     const key = dateKey(year, month, d);
     const count = (dayMap[key] || []).length;
+    const intensity = dayIntensity(count);
     const classes = ["day-cell"];
     if (key === todayKey) classes.push("today");
     if (key === selectedDate) classes.push("selected");
-    html += `<button class="${classes.join(" ")}" data-day="${d}"><span>${d}</span>${dayDotsHtml(count)}</button>`;
+    html += `<button class="${classes.join(" ")}" data-day="${d}"><span>${d}</span>${intensity ? `<span class="swatch ${intensity}"></span>` : ""}</button>`;
   }
   els.calGrid.innerHTML = html;
   els.calGrid.querySelectorAll(".day-cell:not(.empty)").forEach(btn => {
