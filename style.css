@@ -213,6 +213,11 @@
   .swatch.c2 { background: #F0C24B; } /* 2 (Galben) */
   .swatch.c4 { background: #F1616B; } /* 3 (Rosu) */
   .swatch.c5 { background: #D946EF; } /* 4+ (Magenta) */
+
+  /* Bulinute multiple per zi */
+  .day-dots { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 6px; }
+  .day-dots .swatch { width: 5px; height: 5px; flex: 0 0 auto; }
+  .day-dots-more { font-size: 8px; line-height: 1; font-weight: 700; color: #D946EF; margin-left: 1px; }
   
   .legend { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #8B84A0; margin-top: 14px; }
   .legend .swatch { margin-left: 4px; }
@@ -2498,6 +2503,8 @@ body.calendar-view-open { padding-top: 0; }
 .calendar-grid-panel .day-cell.selected { border: 0; background: transparent; }
 .calendar-grid-panel .day-cell.selected > span:first-child { border-color: #8F7CFF; background: #8F7CFF; color: #0B0911; font-weight: 700; }
 .calendar-grid-panel .swatch { width: 7px; height: 7px; border-radius: 50%; }
+.calendar-grid-panel .day-dots { gap: 2px; min-height: 7px; }
+.calendar-grid-panel .day-dots .swatch { width: 5px; height: 5px; }
 .calendar-grid-panel .swatch.c1 { background: #35D6A0; }
 .calendar-grid-panel .swatch.c2 { background: #F0C24B; }
 .calendar-grid-panel .swatch.c4 { background: #F1616B; }
