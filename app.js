@@ -509,7 +509,8 @@ function dayIntensity(count) {
   if (count === 0) return "";
   if (count === 1) return "c1";
   if (count === 2) return "c2";
-  return "c4";
+  if (count === 3) return "c4";
+  return "c5";
 }
 
 function renderAll() {

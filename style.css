@@ -211,7 +211,8 @@
   /* CULORILE PENTRU BULINELE DE PROGRAMARI */
   .swatch.c1 { background: #34D399; } /* 1 (Verde) */
   .swatch.c2 { background: #F0C24B; } /* 2 (Galben) */
-  .swatch.c4 { background: #F1616B; } /* 3+ (Rosu) */
+  .swatch.c4 { background: #F1616B; } /* 3 (Rosu) */
+  .swatch.c5 { background: #D946EF; } /* 4+ (Magenta) */
   
   .legend { display: flex; align-items: center; gap: 4px; font-size: 11px; color: #8B84A0; margin-top: 14px; }
   .legend .swatch { margin-left: 4px; }
@@ -2500,6 +2501,7 @@ body.calendar-view-open { padding-top: 0; }
 .calendar-grid-panel .swatch.c1 { background: #35D6A0; }
 .calendar-grid-panel .swatch.c2 { background: #F0C24B; }
 .calendar-grid-panel .swatch.c4 { background: #F1616B; }
+.calendar-grid-panel .swatch.c5 { background: #D946EF; }
 .calendar-intensity-legend {
   display: flex;
   align-items: center;
