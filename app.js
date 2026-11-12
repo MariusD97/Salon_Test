@@ -505,20 +505,11 @@ function overlaps(dayMap, dateStr, time, duration, ignoreId) {
   });
 }
 
-function dayIntensity(count) {
-  if (count === 0) return "";
-  if (count === 1) return "c1";
-  if (count === 2) return "c2";
-  if (count === 3) return "c4";
-  return "c5";
-}
-
 function dayDotsHtml(count) {
   if (count === 0) return "";
-  const cls = dayIntensity(count);
   const shown = Math.min(count, 4);
   let dots = "";
-  for (let i = 0; i < shown; i++) dots += `<i class="swatch ${cls}"></i>`;
+  for (let i = 0; i < shown; i++) dots += `<i class="swatch"></i>`;
   if (count > 4) dots += `<b class="day-dots-more">+</b>`;
   return `<span class="day-dots">${dots}</span>`;
 }
