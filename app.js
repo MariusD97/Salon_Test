@@ -1156,35 +1156,19 @@ function renderRevenueSection() {
 }
 
 function recurringClientsCount() {
-  const today = dateFromKey(todayDateKey());
-  const cutoff = new Date(today);
-  cutoff.setMonth(cutoff.getMonth() - 6);
-  const latestVisitCutoff = new Date(today);
-  latestVisitCutoff.setDate(latestVisitCutoff.getDate() - 75);
+  const today = todayDateKey();
+  const cutoffDate = dateFromKey(today);
+  cutoffDate.setMonth(cutoffDate.getMonth() - 6);
+  const cutoff = dateKey(cutoffDate.getFullYear(), cutoffDate.getMonth(), cutoffDate.getDate());
   let count = 0;
 
   for (const client of clientsList()) {
-    const visits = client.visits
-      .filter(visit => {
-        const visitDate = dateFromKey(visit.date);
-        return visitDate <= today && visitDate >= cutoff;
-      })
-      .sort((a, b) => a.date.localeCompare(b.date));
-    if (visits.length < 3) continue;
-
-    const lastVisitDate = dateFromKey(visits[visits.length - 1].date);
-    if (lastVisitDate < latestVisitCutoff) continue;
-
-    const intervals = [];
-    for (let index = 1; index < visits.length; index++) {
-      intervals.push(daysBetweenDateKeys(visits[index - 1].date, visits[index].date));
-    }
-    intervals.sort((a, b) => a - b);
-    const middle = Math.floor(intervals.length / 2);
-    const medianInterval = intervals.length % 2
-      ? intervals[middle]
-      : (intervals[middle - 1] + intervals[middle]) / 2;
-    if (medianInterval <= 70) count++;
+    const uniqueVisitDates = new Set(
+      client.visits
+        .map(visit => visit.date)
+        .filter(date => date >= cutoff && date <= today)
+    );
+    if (uniqueVisitDates.size >= 3) count++;
   }
 
   return count;
